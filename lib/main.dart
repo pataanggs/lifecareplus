@@ -13,10 +13,7 @@ class LifeCareApp extends StatelessWidget {
     return MaterialApp(
       title: 'LifeCare+',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        fontFamily: 'Arial',
-        useMaterial3: true,
-      ),
+      theme: ThemeData(fontFamily: 'Arial', useMaterial3: true),
       home: const SplashScreen(),
     );
   }

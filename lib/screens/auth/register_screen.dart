@@ -23,18 +23,27 @@ class RegisterScreen extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
         child: ListView(
           children: [
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                Icon(Icons.arrow_back_ios, color: AppColors.textHighlight),
-                Text(
-                  'Buat Akun',
-                  style: TextStyle(
-                    color: AppColors.textHighlight,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: const Icon(Icons.arrow_back_ios, color: AppColors.textHighlight),
+                ),
+                Expanded(
+                  child: Center(
+                    child: Text(
+                      'Buat Akun',
+                      style: TextStyle(
+                        color: AppColors.textHighlight,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
+                // Add invisible icon to balance the layout
+                const SizedBox(width: 24),
               ],
             ),
             const SizedBox(height: 24),
@@ -71,7 +80,7 @@ class RegisterScreen extends StatelessWidget {
               controller: confirmPasswordController,
               isPassword: true,
             ),
-            RoundedButton(text: 'Daftar', onPressed: _register),
+            RoundedButton(text: 'Daftar', onPressed: _register, color: AppColors.buttonColor, textColor: AppColors.buttonTextColor,),
             const SizedBox(height: 16),
             Center(
               child: GestureDetector(
