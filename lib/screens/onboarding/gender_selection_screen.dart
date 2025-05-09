@@ -104,6 +104,7 @@ class _GenderSelectionScreenState extends State<GenderSelectionScreen> {
                       style: TextStyle(
                         color: AppColors.textHighlight,
                         fontWeight: FontWeight.bold,
+                        fontSize: 20,
                       ),
                     ),
                   ],
@@ -152,7 +153,7 @@ class _GenderSelectionScreenState extends State<GenderSelectionScreen> {
                 child: Container(
                   margin: const EdgeInsets.only(bottom: 20),
                   width: double.infinity,
-                  child: RoundedButton(text: 'Selanjutnya', onPressed: _onNext, color: Colors.white, textColor: Colors.black,),
+                  child: RoundedButton(text: 'Selanjutnya', onPressed: _onNext, color: AppColors.textHighlight, textColor: Colors.black,),
                 ),
               ),
             ],
