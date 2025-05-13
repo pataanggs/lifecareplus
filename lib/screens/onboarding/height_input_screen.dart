@@ -74,7 +74,9 @@ class _HeightInputScreenState extends State<HeightInputScreen>
 
   void _onNext() {
     HapticFeedback.mediumImpact();
-
+    print(
+      '[LOG] Gender: \x1b[1m${widget.selectedGender}\x1b[0m, Age: ${widget.selectedAge}, Weight: ${widget.selectedWeight}',
+    );
     _animationController.reverse().then((_) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -170,133 +172,160 @@ class _HeightInputScreenState extends State<HeightInputScreen>
               ),
 
               Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Animate(
-                          key: ValueKey<int>(selectedHeight),
-                          effects: [
-                            ScaleEffect(
-                              begin: const Offset(0.95, 0.95),
-                              end: const Offset(1.0, 1.0),
-                              duration: 300.ms,
-                              curve: Curves.easeOutCubic,
-                            ),
-                          ],
-                          child: AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 200),
-                            transitionBuilder: (
-                              Widget child,
-                              Animation<double> animation,
-                            ) {
-                              return FadeTransition(
-                                opacity: animation,
-                                child: child,
-                              );
-                            },
-                            child: Text(
-                              selectedHeight.toString(),
-                              key: ValueKey<int>(selectedHeight),
-                              style: const TextStyle(
-                                fontSize: 120,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        )
-                        .animate(delay: 500.ms)
-                        .fadeIn(duration: 700.ms, curve: Curves.easeOut)
-                        .scale(
-                          begin: const Offset(0.7, 0.7),
-                          end: const Offset(1.0, 1.0),
-                          duration: 700.ms,
-                          curve: Curves.easeOutCubic,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return SingleChildScrollView(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: constraints.maxHeight,
                         ),
-
-                    const Icon(
-                          Icons.arrow_drop_down,
-                          color: Color(0xFFD6E56C),
-                          size: 48,
-                        )
-                        .animate(
-                          onPlay:
-                              (controller) => controller.repeat(reverse: true),
-                        )
-                        .moveY(
-                          begin: 0,
-                          end: 5,
-                          duration: 1.seconds,
-                          curve: Curves.easeInOut,
-                        )
-                        .animate(delay: 700.ms)
-                        .fadeIn(duration: 300.ms, curve: Curves.easeOut),
-
-                    const SizedBox(height: 4),
-
-                    Container(
-                          height: 300,
-                          color: const Color(0xAABEE5AC),
-                          child: ScrollablePositionedList.builder(
-                            itemCount: maxHeight - minHeight + 1,
-                            itemScrollController: itemScrollController,
-                            scrollOffsetController: scrollOffsetController,
-                            itemPositionsListener: itemPositionsListener,
-                            scrollDirection: Axis.vertical,
-                            itemBuilder: (context, index) {
-                              final height = index + minHeight;
-                              final isSelected = height == selectedHeight;
-
-                              return GestureDetector(
-                                onTap: () {
-                                  _updateHeight(height);
-                                  _scrollToSelectedHeight();
-                                },
-                                child: Container(
-                                  height: 50,
-                                  decoration: BoxDecoration(
-                                    border:
-                                        isSelected
-                                            ? const Border(
-                                              top: BorderSide(
-                                                color: Colors.white,
-                                                width: 1,
-                                              ),
-                                              bottom: BorderSide(
-                                                color: Colors.white,
-                                                width: 1,
-                                              ),
-                                            )
-                                            : null,
-                                    color: const Color(0xAABEE5AC),
-                                  ),
-                                  child: Center(
-                                    child: AnimatedDefaultTextStyle(
+                        child: IntrinsicHeight(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Animate(
+                                    key: ValueKey<int>(selectedHeight),
+                                    effects: [
+                                      ScaleEffect(
+                                        begin: const Offset(0.95, 0.95),
+                                        end: const Offset(1.0, 1.0),
+                                        duration: 300.ms,
+                                        curve: Curves.easeOutCubic,
+                                      ),
+                                    ],
+                                    child: AnimatedSwitcher(
                                       duration: const Duration(
                                         milliseconds: 200,
                                       ),
-                                      style: TextStyle(
-                                        fontSize: isSelected ? 38 : 30,
-                                        fontWeight:
-                                            isSelected
-                                                ? FontWeight.bold
-                                                : FontWeight.normal,
-                                        color:
-                                            isSelected
-                                                ? Colors.white
-                                                : Colors.black,
+                                      transitionBuilder: (
+                                        Widget child,
+                                        Animation<double> animation,
+                                      ) {
+                                        return FadeTransition(
+                                          opacity: animation,
+                                          child: child,
+                                        );
+                                      },
+                                      child: Text(
+                                        selectedHeight.toString(),
+                                        key: ValueKey<int>(selectedHeight),
+                                        style: const TextStyle(
+                                          fontSize: 120,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
                                       ),
-                                      child: Text(height.toString()),
                                     ),
+                                  )
+                                  .animate(delay: 500.ms)
+                                  .fadeIn(
+                                    duration: 700.ms,
+                                    curve: Curves.easeOut,
+                                  )
+                                  .scale(
+                                    begin: const Offset(0.7, 0.7),
+                                    end: const Offset(1.0, 1.0),
+                                    duration: 700.ms,
+                                    curve: Curves.easeOutCubic,
                                   ),
-                                ),
-                              );
-                            },
+                              const Icon(
+                                    Icons.arrow_drop_down,
+                                    color: Color(0xFFD6E56C),
+                                    size: 48,
+                                  )
+                                  .animate(
+                                    onPlay:
+                                        (controller) =>
+                                            controller.repeat(reverse: true),
+                                  )
+                                  .moveY(
+                                    begin: 0,
+                                    end: 5,
+                                    duration: 1.seconds,
+                                    curve: Curves.easeInOut,
+                                  )
+                                  .animate(delay: 700.ms)
+                                  .fadeIn(
+                                    duration: 300.ms,
+                                    curve: Curves.easeOut,
+                                  ),
+                              const SizedBox(height: 4),
+                              Container(
+                                    height: 300,
+                                    color: const Color(0xAABEE5AC),
+                                    child: ScrollablePositionedList.builder(
+                                      itemCount: maxHeight - minHeight + 1,
+                                      itemScrollController:
+                                          itemScrollController,
+                                      scrollOffsetController:
+                                          scrollOffsetController,
+                                      itemPositionsListener:
+                                          itemPositionsListener,
+                                      scrollDirection: Axis.vertical,
+                                      itemBuilder: (context, index) {
+                                        final height = index + minHeight;
+                                        final isSelected =
+                                            height == selectedHeight;
+
+                                        return GestureDetector(
+                                          onTap: () {
+                                            _updateHeight(height);
+                                            _scrollToSelectedHeight();
+                                          },
+                                          child: Container(
+                                            height: 50,
+                                            decoration: BoxDecoration(
+                                              border:
+                                                  isSelected
+                                                      ? const Border(
+                                                        top: BorderSide(
+                                                          color: Colors.white,
+                                                          width: 1,
+                                                        ),
+                                                        bottom: BorderSide(
+                                                          color: Colors.white,
+                                                          width: 1,
+                                                        ),
+                                                      )
+                                                      : null,
+                                              color: const Color(0xAABEE5AC),
+                                            ),
+                                            child: Center(
+                                              child: AnimatedDefaultTextStyle(
+                                                duration: const Duration(
+                                                  milliseconds: 200,
+                                                ),
+                                                style: TextStyle(
+                                                  fontSize:
+                                                      isSelected ? 38 : 30,
+                                                  fontWeight:
+                                                      isSelected
+                                                          ? FontWeight.bold
+                                                          : FontWeight.normal,
+                                                  color:
+                                                      isSelected
+                                                          ? Colors.white
+                                                          : Colors.black,
+                                                ),
+                                                child: Text(height.toString()),
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  )
+                                  .animate(delay: 800.ms)
+                                  .fadeIn(
+                                    duration: 600.ms,
+                                    curve: Curves.easeOut,
+                                  ),
+                            ],
                           ),
-                        )
-                        .animate(delay: 800.ms)
-                        .fadeIn(duration: 600.ms, curve: Curves.easeOut),
-                  ],
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
 

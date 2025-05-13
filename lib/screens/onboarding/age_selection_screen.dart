@@ -4,6 +4,7 @@ import 'package:lifecareplus/utils/colors.dart';
 import 'package:lifecareplus/widgets/rounded_button.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'weight_input_screen.dart';
 
 class AgeInputScreen extends StatefulWidget {
   final String selectedGender;
@@ -72,7 +73,7 @@ class _AgeInputScreenState extends State<AgeInputScreen>
       itemScrollController.scrollTo(
         index: selectedAge - minAge,
         duration: const Duration(milliseconds: 300),
-        alignment: 0.5, // Center alignment
+        alignment: 0.5,
       );
     }
   }
@@ -80,15 +81,21 @@ class _AgeInputScreenState extends State<AgeInputScreen>
   void _onNext() {
     // Provide haptic feedback
     HapticFeedback.mediumImpact();
-
+    // Log to console
+    print('[LOG] Gender: ${widget.selectedGender}, Age: $selectedAge');
     // Animate out before navigating
     _animationController.reverse().then((_) {
-      // TODO: Navigate to next screen with height input
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Gender: ${widget.selectedGender}, Umur dipilih: $selectedAge',
-          ),
+      // Navigate to WeightInputScreen and pass gender & age
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder:
+              (context) => WeightInputScreen(
+                selectedGender: widget.selectedGender,
+                selectedAge: selectedAge,
+                selectedHeight:
+                    165, // default height, will be set in next screen
+              ),
         ),
       );
     });

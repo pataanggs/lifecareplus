@@ -8,11 +8,13 @@ import 'height_input_screen.dart';
 class WeightInputScreen extends StatefulWidget {
   final String selectedGender;
   final int selectedAge;
+  final int selectedHeight;
 
   const WeightInputScreen({
     super.key,
     required this.selectedGender,
     required this.selectedAge,
+    required this.selectedHeight,
   });
 
   @override
@@ -73,6 +75,9 @@ class _WeightInputScreenState extends State<WeightInputScreen>
 
   void _onNext() {
     HapticFeedback.mediumImpact();
+    print(
+      '[LOG] Gender: \x1b[1m${widget.selectedGender}\x1b[0m, Age: ${widget.selectedAge}, Height: ${widget.selectedHeight}, Weight: $selectedWeight',
+    );
     _animationController.reverse().then((_) {
       Navigator.push(
         context,
