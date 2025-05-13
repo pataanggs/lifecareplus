@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:lifecareplus/widgets/rounded_button.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'height_input_screen.dart';
 
 class WeightInputScreen extends StatefulWidget {
   final String selectedGender;
@@ -72,13 +73,16 @@ class _WeightInputScreenState extends State<WeightInputScreen>
 
   void _onNext() {
     HapticFeedback.mediumImpact();
-
     _animationController.reverse().then((_) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Gender: ${widget.selectedGender}, Age: ${widget.selectedAge}, Weight: $selectedWeight',
-          ),
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder:
+              (context) => HeightInputScreen(
+                selectedGender: widget.selectedGender,
+                selectedAge: widget.selectedAge,
+                selectedWeight: selectedWeight,
+              ),
         ),
       );
     });
