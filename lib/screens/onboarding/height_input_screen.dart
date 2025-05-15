@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:lifecareplus/screens/onboarding/profile_data_screen.dart';
+import 'package:lifecareplus/utils/colors.dart';
 import 'package:lifecareplus/widgets/rounded_button.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -75,14 +77,19 @@ class _HeightInputScreenState extends State<HeightInputScreen>
   void _onNext() {
     HapticFeedback.mediumImpact();
     print(
-      '[LOG] Gender: \x1b[1m${widget.selectedGender}\x1b[0m, Age: ${widget.selectedAge}, Weight: ${widget.selectedWeight}',
+      '[LOG] Gender: ${widget.selectedGender}, Age: ${widget.selectedAge}, Height: ${widget.selectedWeight}, Weight: $selectedHeight',
     );
     _animationController.reverse().then((_) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Gender: ${widget.selectedGender}, Age: ${widget.selectedAge}, Weight: ${widget.selectedWeight}, Height: $selectedHeight',
-          ),
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder:
+              (context) => ProfileDataScreen(
+                selectedGender: widget.selectedGender,
+                selectedAge: widget.selectedAge,
+                selectedHeight: widget.selectedWeight,
+                selectedWeight: selectedHeight,
+              ),
         ),
       );
     });
@@ -206,14 +213,30 @@ class _HeightInputScreenState extends State<HeightInputScreen>
                                           child: child,
                                         );
                                       },
-                                      child: Text(
-                                        selectedHeight.toString(),
-                                        key: ValueKey<int>(selectedHeight),
-                                        style: const TextStyle(
-                                          fontSize: 120,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
-                                        ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.baseline,
+                                        textBaseline: TextBaseline.alphabetic,
+                                        children: [
+                                          Text(
+                                            selectedHeight.toString(),
+                                            key: ValueKey<int>(selectedHeight),
+                                            style: const TextStyle(
+                                              fontSize: 120,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                          const Text(
+                                            " cm",
+                                            style: TextStyle(
+                                              fontSize: 30,
+                                              fontWeight: FontWeight.w400,
+                                              color: Colors.white70,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   )
@@ -329,14 +352,26 @@ class _HeightInputScreenState extends State<HeightInputScreen>
                 ),
               ),
 
+              // Next button with elegant entrance animation
               Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 16,
-                ),
-                child: RoundedButton(text: 'Selanjutnya', onPressed: _onNext)
+                padding: const EdgeInsets.only(bottom: 40, left: 24, right: 24),
+                child: RoundedButton(
+                      text: 'Selanjutnya',
+                      onPressed: _onNext,
+                      color: AppColors.textHighlight,
+                      textColor: Colors.black,
+                      width: 300,
+                      height: 50,
+                      elevation: 3, // Add some nice elevation for depth
+                    )
                     .animate(delay: 1000.ms)
-                    .fadeIn(duration: 600.ms, curve: Curves.easeOut),
+                    .fadeIn(duration: 600.ms, curve: Curves.easeOut)
+                    .slideY(
+                      begin: 0.3,
+                      end: 0,
+                      duration: 600.ms,
+                      curve: Curves.easeOutQuad,
+                    ),
               ),
             ],
           ),

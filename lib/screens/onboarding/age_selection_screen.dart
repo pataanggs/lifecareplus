@@ -306,11 +306,14 @@ class _AgeInputScreenState extends State<AgeInputScreen>
                                       ),
                                       style: TextStyle(
                                         fontSize: isSelected ? 38 : 30,
-                                        fontWeight: FontWeight.bold,
+                                        fontWeight:
+                                            isSelected
+                                                ? FontWeight.bold
+                                                : FontWeight.normal,
                                         color:
                                             isSelected
                                                 ? Colors.white
-                                                : Colors.white.withOpacity(0.6),
+                                                : Colors.black,
                                       ),
                                       child: Text(age.toString()),
                                     ),

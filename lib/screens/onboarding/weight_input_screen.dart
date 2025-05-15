@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:lifecareplus/utils/colors.dart';
 import 'package:lifecareplus/widgets/rounded_button.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -82,12 +83,11 @@ class _WeightInputScreenState extends State<WeightInputScreen>
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder:
-              (context) => HeightInputScreen(
-                selectedGender: widget.selectedGender,
-                selectedAge: widget.selectedAge,
-                selectedWeight: selectedWeight,
-              ),
+          builder: (context) => HeightInputScreen(
+            selectedGender: widget.selectedGender,
+            selectedAge: widget.selectedAge,
+            selectedWeight: selectedWeight,
+          ),
         ),
       );
     });
@@ -201,14 +201,29 @@ class _WeightInputScreenState extends State<WeightInputScreen>
                                 child: child,
                               );
                             },
-                            child: Text(
-                              selectedWeight.toString(),
-                              key: ValueKey<int>(selectedWeight),
-                              style: const TextStyle(
-                                fontSize: 120,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.baseline,
+                              textBaseline: TextBaseline.alphabetic,
+                              children: [
+                                Text(
+                                  selectedWeight.toString(),
+                                  key: ValueKey<int>(selectedWeight),
+                                  style: const TextStyle(
+                                    fontSize: 120,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const Text(
+                                  " Kg",
+                                  style: TextStyle(
+                                    fontSize: 30,
+                                    fontWeight: FontWeight.w400,
+                                    color: Colors.white70,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         )
@@ -307,14 +322,26 @@ class _WeightInputScreenState extends State<WeightInputScreen>
                 ),
               ),
 
+                            // Next button with elegant entrance animation
               Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 16,
+                padding: const EdgeInsets.only(bottom: 40, left: 24, right: 24),
+                child: RoundedButton(
+                  text: 'Selanjutnya',
+                  onPressed: _onNext,
+                  color: AppColors.textHighlight,
+                  textColor: Colors.black,
+                  width: 300,
+                  height: 50,
+                  elevation: 3, // Add some nice elevation for depth
+                )
+                .animate(delay: 1000.ms)
+                .fadeIn(duration: 600.ms, curve: Curves.easeOut)
+                .slideY(
+                  begin: 0.3,
+                  end: 0,
+                  duration: 600.ms,
+                  curve: Curves.easeOutQuad,
                 ),
-                child: RoundedButton(text: 'Selanjutnya', onPressed: _onNext)
-                    .animate(delay: 1000.ms)
-                    .fadeIn(duration: 600.ms, curve: Curves.easeOut),
               ),
             ],
           ),

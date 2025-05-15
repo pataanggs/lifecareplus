@@ -4,6 +4,7 @@ import '../utils/colors.dart';
 import '../widgets/rounded_button.dart';
 import 'auth/login_screen.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'auth/terms_conditions.screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -12,7 +13,8 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _animationController;
   bool _showButton = false;
 
@@ -38,14 +40,22 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     super.dispose();
   }
 
-  void _navigateToLogin(BuildContext context) {
-    // Simple haptic feedback for button press
-    HapticFeedback.lightImpact();
+  void _navigateToLogin(BuildContext context) async {
+    _animationController.reverse().then((_) async {
+      // Show Terms & Conditions first
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const TermsAndConditionsScreen()),
+      );
 
-    // Navigate to the login screen with a smooth transition
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (context) => LoginScreen()),
-    );
+      // Only proceed to login if terms were accepted
+      if (result == true) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+        );
+      }
+    });
   }
 
   @override
@@ -56,10 +66,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
         height: double.infinity,
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              AppColors.topGradient,
-              AppColors.bottomGradient,
-            ],
+            colors: [AppColors.topGradient, AppColors.bottomGradient],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -78,7 +85,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                   animation: _animationController,
                   builder: (context, child) {
                     return Transform.scale(
-                      scale: Curves.easeOutCubic.transform(_animationController.value),
+                      scale: Curves.easeOutCubic.transform(
+                        _animationController.value,
+                      ),
                       child: Opacity(
                         opacity: _animationController.value,
                         child: child,
@@ -86,7 +95,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                     );
                   },
                   child: Image.asset(
-                    'assets/lifecareplus_logo.png', 
+                    'assets/lifecareplus_logo.png',
                     width: 200, // Adjust logo size to fit modern look
                   ),
                 ),
@@ -104,7 +113,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 20,
-                      fontWeight: FontWeight.w600, // Slightly bold for better readability
+                      fontWeight:
+                          FontWeight
+                              .w600, // Slightly bold for better readability
                     ),
                   ),
                 ),
@@ -118,10 +129,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                     onPressed: () => _navigateToLogin(context),
                     color: AppColors.textHighlight,
                     textColor: Colors.black,
-                  ).animate().fadeIn(
-                    duration: 400.ms,
-                    curve: Curves.easeOut,
-                  ),
+                  ).animate().fadeIn(duration: 400.ms, curve: Curves.easeOut),
 
                 const SizedBox(height: 40),
               ],
