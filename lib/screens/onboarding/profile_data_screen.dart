@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../services/auth_service.dart';
+import '../../services/storage_service.dart';
 import '../../utils/colors.dart';
+import '../../utils/show_snackbar.dart';
 import '../../widgets/rounded_button.dart';
 import '../notifications_permission_screen.dart';
 
@@ -32,6 +35,9 @@ class _ProfileDataScreenState extends State<ProfileDataScreen>
   final emailController = TextEditingController();
   final phoneController = TextEditingController();
 
+  final AuthService _authService = AuthService();
+  final StorageService _storageService = StorageService();
+
   File? _profileImage;
   bool _showContent = false;
   late AnimationController _animationController;
@@ -51,6 +57,31 @@ class _ProfileDataScreenState extends State<ProfileDataScreen>
         _animationController.forward();
       }
     });
+
+    // Pre-fill email and phone if available
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    if (_authService.currentUser != null) {
+      try {
+        emailController.text = _authService.currentUser!.email ?? '';
+
+        final userData = await _authService.getUserProfile(
+          _authService.currentUser!.uid,
+        );
+
+        if (userData != null) {
+          setState(() {
+            fullNameController.text = userData['fullName'] ?? '';
+            nicknameController.text = userData['nickname'] ?? '';
+            phoneController.text = userData['phone'] ?? '';
+          });
+        }
+      } catch (e) {
+        print('Error loading user data: $e');
+      }
+    }
   }
 
   @override
@@ -78,35 +109,57 @@ class _ProfileDataScreenState extends State<ProfileDataScreen>
     }
   }
 
-  void _onNext() {
+  void _onNext() async {
     // Validate fields
     if (fullNameController.text.isEmpty ||
         nicknameController.text.isEmpty ||
         emailController.text.isEmpty ||
         phoneController.text.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Semua data harus diisi')));
+      showSnackBar(context, 'Semua data harus diisi');
       return;
     }
 
-    // Print collected user data
-    print('User Data:');
-    print('Gender: ${widget.selectedGender}');
-    print('Age: ${widget.selectedAge}');
-    print('Height: ${widget.selectedHeight} cm');
-    print('Weight: ${widget.selectedWeight} kg');
-    print('Full Name: ${fullNameController.text}');
-    print('Nickname: ${nicknameController.text}');
-    print('Email: ${emailController.text}');
-    print('Phone: ${phoneController.text}');
-    print('Has Profile Image: ${_profileImage != null}');
 
-    // Navigate to notification permission screen
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const NotificationPermissionScreen()),
-    );
+    try {
+      String? profileImageUrl;
+
+      // Upload profile image if selected
+      if (_profileImage != null) {
+        profileImageUrl = await _storageService.uploadProfileImage(
+          _profileImage!,
+        );
+      }
+
+      // Update user profile
+      await _authService.updateUserProfile(_authService.currentUser!.uid, {
+        'fullName': fullNameController.text,
+        'nickname': nicknameController.text,
+        'email': emailController.text,
+        'phone': phoneController.text,
+        'gender': widget.selectedGender,
+        'age': widget.selectedAge,
+        'height': widget.selectedHeight,
+        'weight': widget.selectedWeight,
+        if (profileImageUrl != null) 'profileImageUrl': profileImageUrl,
+      });
+
+      // Navigate to notification permission screen
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const NotificationPermissionScreen(),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        showSnackBar(context, 'Terjadi kesalahan saat menyimpan data');
+      }
+    } finally {
+      if (mounted) {
+      }
+    }
   }
 
   @override

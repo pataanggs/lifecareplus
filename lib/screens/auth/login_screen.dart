@@ -1,11 +1,14 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import '../../services/auth_service.dart';
 import '../../utils/colors.dart';
 import '../../widgets/rounded_input.dart';
 import '../../widgets/rounded_button.dart';
 import '../auth/register_screen.dart';
-import '../onboarding/gender_selection_screen.dart';
+import '../home_screen.dart';
+import '../../utils/show_snackbar.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -17,6 +20,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
+  final AuthService _authService = AuthService();
   
   // Controls when we show the main content
   bool _showContent = false;
@@ -29,25 +33,97 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) setState(() => _showContent = true);
     });
   }
+  
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
 
-  void _login(BuildContext context) {
+  void _login(BuildContext context) async {
     HapticFeedback.lightImpact();
     
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
-
+    
     if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Email dan password wajib diisi')),
-      );
+      showSnackBar(context, 'Email dan password wajib diisi');
       return;
     }
 
-    // Login sukses → pindah ke GenderSelection
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const GenderSelectionScreen()),
-    );
+    
+    try {
+      await _authService.signInWithEmailAndPassword(
+        email: email, 
+        password: password,
+      );
+      
+      // Navigate to home screen
+      if (mounted) {
+        Navigator.pushReplacement(
+          context, 
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      String errorMessage;
+      
+      switch (e.code) {
+        case 'user-not-found':
+          errorMessage = 'Email tidak terdaftar';
+          break;
+        case 'wrong-password':
+          errorMessage = 'Password salah, silakan coba lagi';
+          break;
+        case 'user-disabled':
+          errorMessage = 'Akun anda telah dinonaktifkan';
+          break;
+        case 'invalid-email':
+          errorMessage = 'Format email tidak valid';
+          break;
+        default:
+          errorMessage = 'Gagal login. Silakan coba lagi';
+      }
+      
+      if (mounted) {
+        showSnackBar(context, errorMessage);
+      }
+    } catch (e) {
+      if (mounted) {
+        showSnackBar(context, 'Terjadi kesalahan sistem');
+      }
+    } finally {
+      if (mounted) {
+      }
+    }
+  }
+
+  void _resetPassword() async {
+    final email = emailController.text.trim();
+    
+    if (email.isEmpty) {
+      showSnackBar(context, 'Masukkan email untuk reset password');
+      return;
+    }
+    
+    
+    try {
+      await _authService.resetPassword(email);
+      if (mounted) {
+        showSnackBar(
+          context, 
+          'Email reset password telah dikirim ke $email',
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        showSnackBar(context, 'Gagal mengirim email reset password');
+      }
+    } finally {
+      if (mounted) {
+      }
+    }
   }
 
   @override
@@ -170,6 +246,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: TextButton(
                     onPressed: () {
                       HapticFeedback.selectionClick();
+                      _resetPassword();
                     },
                     child: const Text(
                       'Lupa Kata Sandi?',

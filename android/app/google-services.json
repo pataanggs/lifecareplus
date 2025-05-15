@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "338603757091",
+    "project_id": "lifecareplus-e76e9",
+    "storage_bucket": "lifecareplus-e76e9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:338603757091:android:8343b2a3b04fb48ad16b96",
+        "android_client_info": {
+          "package_name": "com.example.lifecareplus"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBKFR2-2hGt23_htRcb4zwI5mAr3FAXs5Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

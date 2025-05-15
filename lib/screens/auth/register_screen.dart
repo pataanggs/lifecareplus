@@ -1,9 +1,13 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import '../../services/auth_service.dart';
 import '../../utils/colors.dart';
+import '../../utils/show_snackbar.dart';
 import '../../widgets/rounded_input.dart';
 import '../../widgets/rounded_button.dart';
+import '../onboarding/gender_selection_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -14,13 +18,15 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final nameController = TextEditingController();
+  final emailController = TextEditingController();
   final phoneController = TextEditingController();
   final passwordController = TextEditingController();
   final confirmPasswordController = TextEditingController();
-  
+  final AuthService _authService = AuthService();
+
   // Controls when we show the main content
   bool _showContent = false;
-  
+
   @override
   void initState() {
     super.initState();
@@ -33,15 +39,93 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   void dispose() {
     nameController.dispose();
+    emailController.dispose();
     phoneController.dispose();
     passwordController.dispose();
     confirmPasswordController.dispose();
     super.dispose();
   }
 
-  void _register() {
+  void _register() async {
     HapticFeedback.lightImpact();
-    // Proses registrasi (nanti integrasi Firebase/Auth)
+
+    final name = nameController.text.trim();
+    final email = emailController.text.trim();
+    final phone = phoneController.text.trim();
+    final password = passwordController.text;
+    final confirmPassword = confirmPasswordController.text;
+
+    // Validate inputs
+    if (name.isEmpty || email.isEmpty || phone.isEmpty || password.isEmpty) {
+      showSnackBar(context, 'Semua field harus diisi');
+      return;
+    }
+
+    if (password != confirmPassword) {
+      showSnackBar(context, 'Password tidak sama');
+      return;
+    }
+
+    if (password.length < 6) {
+      showSnackBar(context, 'Password minimal 6 karakter');
+      return;
+    }
+
+
+    try {
+      final result = await _authService.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      // Save basic user information
+      await _authService.createUserProfile(
+        uid: result.user!.uid,
+        fullName: name,
+        nickname: name.split(' ')[0], // Default nickname as first name
+        email: email,
+        phone: phone,
+        gender: '', // Will be set in gender selection screen
+        age: 0, // Will be set later
+        height: 0, // Will be set later
+        weight: 0, // Will be set later
+      );
+
+      // Navigate to onboarding flow
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const GenderSelectionScreen()),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      String errorMessage;
+
+      switch (e.code) {
+        case 'email-already-in-use':
+          errorMessage = 'Email sudah terdaftar';
+          break;
+        case 'invalid-email':
+          errorMessage = 'Format email tidak valid';
+          break;
+        case 'weak-password':
+          errorMessage = 'Password terlalu lemah';
+          break;
+        default:
+          errorMessage = 'Gagal membuat akun. Silakan coba lagi';
+      }
+
+      if (mounted) {
+        showSnackBar(context, errorMessage);
+      }
+    } catch (e) {
+      if (mounted) {
+        showSnackBar(context, 'Terjadi kesalahan sistem');
+      }
+    } finally {
+      if (mounted) {
+      }
+    }
   }
 
   @override
@@ -58,56 +142,60 @@ class _RegisterScreenState extends State<RegisterScreen> {
               children: [
                 // Header with back button
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    GestureDetector(
-                      onTap: () {
-                        HapticFeedback.selectionClick();
-                        Navigator.pop(context);
-                      },
-                      child: const Icon(Icons.arrow_back_ios, color: AppColors.textHighlight),
-                    ),
-                    Expanded(
-                      child: Center(
-                        child: Text(
-                          'Buat Akun',
-                          style: TextStyle(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        GestureDetector(
+                          onTap: () {
+                            HapticFeedback.selectionClick();
+                            Navigator.pop(context);
+                          },
+                          child: const Icon(
+                            Icons.arrow_back_ios,
                             color: AppColors.textHighlight,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                      ),
+                        Expanded(
+                          child: Center(
+                            child: Text(
+                              'Buat Akun',
+                              style: TextStyle(
+                                color: AppColors.textHighlight,
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                        // Add invisible icon to balance the layout
+                        const SizedBox(width: 24),
+                      ],
+                    )
+                    .animate(delay: 100.ms)
+                    .slideY(
+                      begin: -0.2,
+                      end: 0,
+                      duration: 400.ms,
+                      curve: Curves.easeOutQuad,
                     ),
-                    // Add invisible icon to balance the layout
-                    const SizedBox(width: 24),
-                  ],
-                ).animate(delay: 100.ms).slideY(
-                  begin: -0.2, 
-                  end: 0,
-                  duration: 400.ms,
-                  curve: Curves.easeOutQuad,
-                ),
-                
+
                 const SizedBox(height: 24),
-                
+
                 // Welcome text
                 const Center(
-                  child: Text(
-                    'Ayo Mulai',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ).animate(delay: 200.ms).fadeIn(
-                  duration: 400.ms, 
-                  curve: Curves.easeOut,
-                ),
-                
+                      child: Text(
+                        'Ayo Mulai',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    )
+                    .animate(delay: 200.ms)
+                    .fadeIn(duration: 400.ms, curve: Curves.easeOut),
+
                 const SizedBox(height: 24),
-                
+
                 // Form fields - staggered animations
                 Animate(
                   effects: [
@@ -131,7 +219,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     controller: nameController,
                   ),
                 ),
-                
+
+                Animate(
+                  effects: [
+                    SlideEffect(
+                      begin: const Offset(0, 0.2),
+                      end: const Offset(0, 0),
+                      duration: 400.ms,
+                      curve: Curves.easeOutQuad,
+                    ),
+                    FadeEffect(
+                      begin: 0,
+                      end: 1,
+                      duration: 400.ms,
+                      curve: Curves.easeOut,
+                    ),
+                  ],
+                  delay: 350.ms,
+                  child: RoundedInput(
+                    label: 'Email',
+                    hint: 'example@example.com',
+                    controller: emailController,
+                  ),
+                ),
+
                 Animate(
                   effects: [
                     SlideEffect(
@@ -154,7 +265,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     controller: phoneController,
                   ),
                 ),
-                
+
                 Animate(
                   effects: [
                     SlideEffect(
@@ -178,7 +289,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     isPassword: true,
                   ),
                 ),
-                
+
                 Animate(
                   effects: [
                     SlideEffect(
@@ -202,7 +313,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     isPassword: true,
                   ),
                 ),
-                
+
                 // Register button
                 Container(
                   margin: const EdgeInsets.only(top: 16, bottom: 16),
@@ -214,45 +325,44 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         end: const Offset(1, 1),
                         duration: 400.ms,
                         curve: Curves.easeOut,
-                      )
+                      ),
                     ],
                     delay: 700.ms,
                     child: RoundedButton(
-                      text: 'Daftar', 
-                      onPressed: _register, 
-                      color: AppColors.textHighlight, 
+                      text: 'Daftar',
+                      onPressed: _register,
+                      color: AppColors.textHighlight,
                       textColor: Colors.black,
                     ),
                   ),
                 ),
-                
+
                 // Login link
                 Center(
-                  child: GestureDetector(
-                    onTap: () {
-                      HapticFeedback.selectionClick();
-                      Navigator.pop(context);
-                    },
-                    child: const Text.rich(
-                      TextSpan(
-                        text: 'Kamu sudah punya akun? ',
-                        style: TextStyle(color: Colors.white),
-                        children: [
+                      child: GestureDetector(
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          Navigator.pop(context);
+                        },
+                        child: const Text.rich(
                           TextSpan(
-                            text: 'Masuk',
-                            style: TextStyle(
-                              color: AppColors.textHighlight,
-                              fontWeight: FontWeight.bold,
-                            ),
+                            text: 'Kamu sudah punya akun? ',
+                            style: TextStyle(color: Colors.white),
+                            children: [
+                              TextSpan(
+                                text: 'Masuk',
+                                style: TextStyle(
+                                  color: AppColors.textHighlight,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
-                    ),
-                  ),
-                ).animate(delay: 800.ms).fadeIn(
-                  duration: 400.ms,
-                  curve: Curves.easeOut,
-                ),
+                    )
+                    .animate(delay: 800.ms)
+                    .fadeIn(duration: 400.ms, curve: Curves.easeOut),
               ],
             ),
           ),

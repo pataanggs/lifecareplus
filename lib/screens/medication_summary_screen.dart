@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import '../services/medication_service.dart';
 import '../utils/colors.dart';
+import '../utils/show_snackbar.dart';
 import '../widgets/rounded_button.dart';
-import 'home_screen.dart';
+import 'medication_reminder_screen.dart';
 
 class MedicationSummaryScreen extends StatefulWidget {
   final String medicationName;
@@ -28,11 +30,14 @@ class MedicationSummaryScreen extends StatefulWidget {
   });
 
   @override
-  State<MedicationSummaryScreen> createState() => _MedicationSummaryScreenState();
+  State<MedicationSummaryScreen> createState() =>
+      _MedicationSummaryScreenState();
 }
 
 class _MedicationSummaryScreenState extends State<MedicationSummaryScreen> {
   bool _showContent = false;
+  bool _isLoading = false;
+  final MedicationService _medicationService = MedicationService();
 
   @override
   void initState() {
@@ -42,16 +47,52 @@ class _MedicationSummaryScreenState extends State<MedicationSummaryScreen> {
     });
   }
 
-  void _finishSetup() {
+  void _finishSetup() async {
     HapticFeedback.mediumImpact();
-    
-    // Here you would save all medication details to your database/storage
-    
-    // Navigate back to home screen and clear the stack
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const HomeScreen()),
-      (route) => false,
-    );
+
+    setState(() => _isLoading = true);
+
+    try {
+      // Save medication data to Firestore
+      await _medicationService.addMedication(
+        name: widget.medicationName,
+        frequency: widget.frequency,
+        time: widget.time,
+        dosage: widget.dosage,
+        stockReminderEnabled: widget.stockReminderEnabled,
+        currentStock: widget.currentStock,
+        reminderThreshold: widget.reminderThreshold,
+        unitType: widget.unitType,
+      );
+
+      if (mounted) {
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Pengingat obat berhasil disimpan'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // Navigate back to the medication reminder screen
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const MedicationReminderScreen()),
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        showSnackBar(
+          context,
+          'Gagal menyimpan pengingat obat. Coba lagi nanti.',
+        );
+        debugPrint('Error saving medication: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
@@ -89,7 +130,7 @@ class _MedicationSummaryScreenState extends State<MedicationSummaryScreen> {
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           const SizedBox(height: 16),
-                          
+
                           // Header with profile and greeting
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -99,27 +140,32 @@ class _MedicationSummaryScreenState extends State<MedicationSummaryScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Hi, Asavira',
-                                    style: TextStyle(
-                                      fontSize: 26,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white.withOpacity(0.9),
-                                    ),
-                                  ).animate(delay: 100.ms).fadeIn(duration: 400.ms),
-                                  
+                                        'Hi, Asavira',
+                                        style: TextStyle(
+                                          fontSize: 26,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white.withOpacity(0.9),
+                                        ),
+                                      )
+                                      .animate(delay: 100.ms)
+                                      .fadeIn(duration: 400.ms),
+
                                   const SizedBox(height: 4),
-                                  
+
+                                  // Get current date in Indonesian format
                                   Text(
-                                    'SABTU, DES 28',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w500,
-                                      color: Colors.white.withOpacity(0.7),
-                                    ),
-                                  ).animate(delay: 200.ms).fadeIn(duration: 400.ms),
+                                        _getFormattedDate(),
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.white.withOpacity(0.7),
+                                        ),
+                                      )
+                                      .animate(delay: 200.ms)
+                                      .fadeIn(duration: 400.ms),
                                 ],
                               ),
-                              
+
                               // Profile icon
                               Container(
                                 width: 48,
@@ -136,156 +182,169 @@ class _MedicationSummaryScreenState extends State<MedicationSummaryScreen> {
                               ).animate(delay: 200.ms).fadeIn(duration: 400.ms),
                             ],
                           ),
-                          
+
                           const SizedBox(height: 40),
-                          
+
                           // Success Icon
                           Container(
-                            width: 120,
-                            height: 120,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.1),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
+                                width: 120,
+                                height: 120,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.1),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
-                            child: const Icon(
-                              Icons.check_circle,
-                              size: 80,
-                              color: Color(0xFF05606B),
-                            ),
-                          ).animate(delay: 300.ms)
-                            .fadeIn(duration: 600.ms)
-                            .scale(
-                              begin: const Offset(0.7, 0.7),
-                              end: const Offset(1.0, 1.0),
-                              duration: 600.ms,
-                              curve: Curves.elasticOut,
-                            ),
-                          
+                                child: const Icon(
+                                  Icons.check_circle,
+                                  size: 80,
+                                  color: Color(0xFF05606B),
+                                ),
+                              )
+                              .animate(delay: 300.ms)
+                              .fadeIn(duration: 600.ms)
+                              .scale(
+                                begin: const Offset(0.7, 0.7),
+                                end: const Offset(1.0, 1.0),
+                                duration: 600.ms,
+                                curve: Curves.elasticOut,
+                              ),
+
                           const SizedBox(height: 30),
-                          
+
                           // Success Text
                           Text(
                             'Pengingat Berhasil Dibuat',
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
                             ),
                           ).animate(delay: 500.ms).fadeIn(duration: 400.ms),
-                          
+
                           const SizedBox(height: 40),
-                          
+
                           // Summary Card
                           Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.08),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 4),
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(20),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.08),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Medication Title
-                                Text(
-                                  widget.medicationName,
-                                  style: const TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF05606B),
-                                  ),
-                                ),
-                                
-                                const SizedBox(height: 16),
-                                const Divider(height: 1, color: Color(0xFFEAEAEA)),
-                                const SizedBox(height: 16),
-                                
-                                // Medication Details
-                                _buildDetailRow(
-                                  label: 'Frekuensi',
-                                  value: widget.frequency,
-                                  delay: 700,
-                                ),
-                                
-                                const SizedBox(height: 12),
-                                
-                                _buildDetailRow(
-                                  label: 'Waktu',
-                                  value: widget.time,
-                                  delay: 800,
-                                ),
-                                
-                                const SizedBox(height: 12),
-                                
-                                _buildDetailRow(
-                                  label: 'Dosis',
-                                  value: widget.dosage,
-                                  delay: 900,
-                                ),
-                                
-                                if (widget.stockReminderEnabled) ...[
-                                  const SizedBox(height: 16),
-                                  const Divider(height: 1, color: Color(0xFFEAEAEA)),
-                                  const SizedBox(height: 16),
-                                  
-                                  // Stock reminder details
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Pengingat Stok',
-                                        style: TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.grey.shade700,
-                                        ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Medication Title
+                                    Text(
+                                      widget.medicationName,
+                                      style: const TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF05606B),
                                       ),
-                                      
-                                      const SizedBox(height: 12),
-                                      
-                                      _buildDetailRow(
-                                        label: 'Stok Saat Ini',
-                                        value: '${widget.currentStock} ${widget.unitType}',
-                                        delay: 1000,
-                                        valueColor: const Color(0xFF9C4380),
+                                    ),
+
+                                    const SizedBox(height: 16),
+                                    const Divider(
+                                      height: 1,
+                                      color: Color(0xFFEAEAEA),
+                                    ),
+                                    const SizedBox(height: 16),
+
+                                    // Medication Details
+                                    _buildDetailRow(
+                                      label: 'Frekuensi',
+                                      value: widget.frequency,
+                                      delay: 700,
+                                    ),
+
+                                    const SizedBox(height: 12),
+
+                                    _buildDetailRow(
+                                      label: 'Waktu',
+                                      value: widget.time,
+                                      delay: 800,
+                                    ),
+
+                                    const SizedBox(height: 12),
+
+                                    _buildDetailRow(
+                                      label: 'Dosis',
+                                      value: widget.dosage,
+                                      delay: 900,
+                                    ),
+
+                                    if (widget.stockReminderEnabled) ...[
+                                      const SizedBox(height: 16),
+                                      const Divider(
+                                        height: 1,
+                                        color: Color(0xFFEAEAEA),
                                       ),
-                                      
-                                      const SizedBox(height: 12),
-                                      
-                                      _buildDetailRow(
-                                        label: 'Notifikasi Pada',
-                                        value: '${widget.reminderThreshold} ${widget.unitType}',
-                                        delay: 1100,
-                                        valueColor: const Color(0xFF9C4380),
+                                      const SizedBox(height: 16),
+
+                                      // Stock reminder details
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Pengingat Stok',
+                                            style: TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.grey.shade700,
+                                            ),
+                                          ),
+
+                                          const SizedBox(height: 12),
+
+                                          _buildDetailRow(
+                                            label: 'Stok Saat Ini',
+                                            value:
+                                                '${widget.currentStock} ${widget.unitType}',
+                                            delay: 1000,
+                                            valueColor: const Color(0xFF9C4380),
+                                          ),
+
+                                          const SizedBox(height: 12),
+
+                                          _buildDetailRow(
+                                            label: 'Notifikasi Pada',
+                                            value:
+                                                '${widget.reminderThreshold} ${widget.unitType}',
+                                            delay: 1100,
+                                            valueColor: const Color(0xFF9C4380),
+                                          ),
+                                        ],
                                       ),
                                     ],
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ).animate(delay: 600.ms).fadeIn(duration: 500.ms).slideY(
-                            begin: 0.1,
-                            end: 0,
-                            duration: 500.ms,
-                            curve: Curves.easeOutQuad,
-                          ),
-                          
+                                  ],
+                                ),
+                              )
+                              .animate(delay: 600.ms)
+                              .fadeIn(duration: 500.ms)
+                              .slideY(
+                                begin: 0.1,
+                                end: 0,
+                                duration: 500.ms,
+                                curve: Curves.easeOutQuad,
+                              ),
+
                           const SizedBox(height: 40),
-                          
+
                           // Preview Text
                           Text(
                             'Anda akan mendapatkan notifikasi pada waktu yang telah ditentukan.',
@@ -296,34 +355,45 @@ class _MedicationSummaryScreenState extends State<MedicationSummaryScreen> {
                               height: 1.5,
                             ),
                           ).animate(delay: 1200.ms).fadeIn(duration: 400.ms),
-                          
+
                           const SizedBox(height: 30),
                         ],
                       ),
                     ),
                   ),
                 ),
-                
+
                 // Continue button
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                  child: RoundedButton(
-                    text: 'Kembali ke Halaman Utama',
-                    onPressed: _finishSetup,
-                    color: AppColors.textHighlight,
-                    textColor: Colors.black,
-                    width: 300,
-                    height: 50,
-                    borderRadius: 25,
-                    elevation: 3,
-                  ).animate(delay: 1300.ms)
-                    .fadeIn(duration: 600.ms, curve: Curves.easeOut)
-                    .slideY(
-                      begin: 0.3,
-                      end: 0,
-                      duration: 600.ms,
-                      curve: Curves.easeOutQuad,
-                    ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 16,
+                  ),
+                  child:
+                      _isLoading
+                          ? const Center(
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                            ),
+                          )
+                          : RoundedButton(
+                                text: 'Kembali ke Halaman Utama',
+                                onPressed: _finishSetup,
+                                color: AppColors.textHighlight,
+                                textColor: Colors.black,
+                                width: 300,
+                                height: 50,
+                                borderRadius: 25,
+                                elevation: 3,
+                              )
+                              .animate(delay: 1300.ms)
+                              .fadeIn(duration: 600.ms, curve: Curves.easeOut)
+                              .slideY(
+                                begin: 0.3,
+                                end: 0,
+                                duration: 600.ms,
+                                curve: Curves.easeOutQuad,
+                              ),
                 ),
               ],
             ),
@@ -332,7 +402,7 @@ class _MedicationSummaryScreenState extends State<MedicationSummaryScreen> {
       ),
     );
   }
-  
+
   Widget _buildDetailRow({
     required String label,
     required String value,
@@ -344,10 +414,7 @@ class _MedicationSummaryScreenState extends State<MedicationSummaryScreen> {
       children: [
         Text(
           label,
-          style: TextStyle(
-            fontSize: 16,
-            color: Colors.grey.shade600,
-          ),
+          style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
         ),
         Text(
           value,
@@ -359,5 +426,37 @@ class _MedicationSummaryScreenState extends State<MedicationSummaryScreen> {
         ),
       ],
     ).animate(delay: delay.ms).fadeIn(duration: 400.ms);
+  }
+
+  String _getFormattedDate() {
+    final now = DateTime.now();
+    final months = [
+      'JAN',
+      'FEB',
+      'MAR',
+      'APR',
+      'MEI',
+      'JUN',
+      'JUL',
+      'AGS',
+      'SEP',
+      'OKT',
+      'NOV',
+      'DES',
+    ];
+    final days = [
+      'SENIN',
+      'SELASA',
+      'RABU',
+      'KAMIS',
+      'JUMAT',
+      'SABTU',
+      'MINGGU',
+    ];
+
+    final day = days[now.weekday - 1];
+    final month = months[now.month - 1];
+
+    return '$day, $month ${now.day}';
   }
 }

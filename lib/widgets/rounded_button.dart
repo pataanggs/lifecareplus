@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../utils/colors.dart';
 
 class RoundedButton extends StatelessWidget {
   final String text;
@@ -14,7 +13,7 @@ class RoundedButton extends StatelessWidget {
   final IconData? icon;
 
   const RoundedButton({
-    Key? key,
+    super.key,
     required this.text,
     required this.onPressed,
     this.color,
@@ -24,7 +23,7 @@ class RoundedButton extends StatelessWidget {
     this.borderRadius,
     this.elevation,
     this.icon,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

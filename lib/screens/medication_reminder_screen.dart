@@ -22,6 +22,20 @@ class _MedicationReminderScreenState extends State<MedicationReminderScreen> {
     Future.delayed(const Duration(milliseconds: 100), () {
       if (mounted) setState(() => _showContent = true);
     });
+
+    // Check if user has existing medications
+    _checkExistingMedications();
+  }
+
+  Future<void> _checkExistingMedications() async {
+    try {
+      if (mounted) {
+        setState(() {
+        });
+      }
+    } catch (e) {
+      debugPrint('Error checking medications: $e');
+    }
   }
 
   void _createReminder() {
@@ -31,6 +45,7 @@ class _MedicationReminderScreenState extends State<MedicationReminderScreen> {
       MaterialPageRoute(builder: (_) => const AddMedicationScreen()),
     );
   }
+
 
   @override
   Widget build(BuildContext context) {

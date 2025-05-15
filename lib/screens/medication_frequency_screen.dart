@@ -225,7 +225,7 @@ class _MedicationFrequencyScreenState extends State<MedicationFrequencyScreen> {
                             frequency: frequency,
                             delay: 700 + (index * 100),
                           );
-                        }).toList(),
+                        }),
 
                         const SizedBox(height: 40),
                       ],

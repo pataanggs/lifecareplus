@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:lifecareplus/screens/medication_frequency_screen.dart';
 import '../utils/colors.dart';
+import '../utils/show_snackbar.dart';
 import '../widgets/rounded_button.dart';
+import 'medication_frequency_screen.dart';
 
 class AddMedicationScreen extends StatefulWidget {
   const AddMedicationScreen({super.key});
@@ -32,11 +32,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
 
   void _addReminder() {
     if (_medicationController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Silakan masukkan nama obat terlebih dahulu'),
-        ),
-      );
+      showSnackBar(context, 'Silakan masukkan nama obat terlebih dahulu');
       return;
     }
 
