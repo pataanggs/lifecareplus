@@ -1,5 +1,18 @@
-include(":app")
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
 
-// Define Flutter SDK path
-val flutterSdkPath = "../../flutter" // Adjust if Flutter SDK is elsewhere
-val flutterPluginDir = File(flutterSdkPath, "packages/flutter_tools/gradle")
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+rootProject.name = "lifecareplus"
+include(":app")

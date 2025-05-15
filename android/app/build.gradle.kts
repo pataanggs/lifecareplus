@@ -2,7 +2,12 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("com.google.gms.google-services")
-    id("flutter")
+}
+
+
+// Flutter configuration should be added via apply method
+apply {
+    from("${project.rootDir.parentFile}/.android/Flutter/build.gradle")
 }
 
 android {
@@ -10,8 +15,8 @@ android {
     compileSdk = 34
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
     }
 
     kotlinOptions {
@@ -31,10 +36,11 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
-}
 
-flutter {
-    source = "../.."
+    // Add this for Flutter compatibility
+    sourceSets {
+        getByName("main").java.srcDirs("src/main/kotlin")
+    }
 }
 
 dependencies {
