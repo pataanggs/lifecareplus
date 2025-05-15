@@ -1,21 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:lifecareplus/utils/colors.dart';
 import 'package:lifecareplus/widgets/rounded_button.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'weight_input_screen.dart';
+import 'height_input_screen.dart';
 
-class AgeInputScreen extends StatefulWidget {
+class WeightInputScreen extends StatefulWidget {
   final String selectedGender;
+  final int selectedAge;
+  final int selectedHeight;
 
-  const AgeInputScreen({super.key, required this.selectedGender});
+  const WeightInputScreen({
+    super.key,
+    required this.selectedGender,
+    required this.selectedAge,
+    required this.selectedHeight,
+  });
 
   @override
-  State<AgeInputScreen> createState() => _AgeInputScreenState();
+  State<WeightInputScreen> createState() => _WeightInputScreenState();
 }
 
-class _AgeInputScreenState extends State<AgeInputScreen>
+class _WeightInputScreenState extends State<WeightInputScreen>
     with SingleTickerProviderStateMixin {
   final ItemScrollController itemScrollController = ItemScrollController();
   final ScrollOffsetController scrollOffsetController =
@@ -23,36 +29,25 @@ class _AgeInputScreenState extends State<AgeInputScreen>
   final ItemPositionsListener itemPositionsListener =
       ItemPositionsListener.create();
 
-  // Animation controller for coordinated animations
   late AnimationController _animationController;
 
-  int selectedAge = 28;
-  final int minAge = 18;
-  final int maxAge = 100;
+  int selectedWeight = 75;
+  final int minWeight = 30;
+  final int maxWeight = 200;
   bool _showContent = false;
 
   @override
   void initState() {
     super.initState();
 
-    // Initialize animation controller
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
     );
 
-    // Adjust initial age based on gender
-    if (widget.selectedGender == 'Laki-Laki') {
-      selectedAge = 28;
-    } else {
-      selectedAge = 25;
-    }
-
-    // Scroll to the selected age with a slight delay to ensure the list is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _scrollToSelectedAge();
+      _scrollToSelectedWeight();
 
-      // Start animations after a short delay
       Future.delayed(const Duration(milliseconds: 100), () {
         if (mounted) {
           setState(() => _showContent = true);
@@ -68,10 +63,10 @@ class _AgeInputScreenState extends State<AgeInputScreen>
     super.dispose();
   }
 
-  void _scrollToSelectedAge() {
+  void _scrollToSelectedWeight() {
     if (itemScrollController.isAttached) {
       itemScrollController.scrollTo(
-        index: selectedAge - minAge,
+        index: selectedWeight - minWeight,
         duration: const Duration(milliseconds: 300),
         alignment: 0.5,
       );
@@ -79,35 +74,32 @@ class _AgeInputScreenState extends State<AgeInputScreen>
   }
 
   void _onNext() {
-    // Provide haptic feedback
     HapticFeedback.mediumImpact();
-    // Log to console
-    print('[LOG] Gender: ${widget.selectedGender}, Age: $selectedAge');
-    // Animate out before navigating
+    print(
+      '[LOG] Gender: \x1b[1m${widget.selectedGender}\x1b[0m, Age: ${widget.selectedAge}, Height: ${widget.selectedHeight}, Weight: $selectedWeight',
+    );
     _animationController.reverse().then((_) {
-      // Navigate to WeightInputScreen and pass gender & age
       Navigator.push(
         context,
         MaterialPageRoute(
           builder:
-              (context) => WeightInputScreen(
+              (context) => HeightInputScreen(
                 selectedGender: widget.selectedGender,
-                selectedAge: selectedAge,
-                selectedHeight:
-                    165, // default height, will be set in next screen
+                selectedAge: widget.selectedAge,
+                selectedWeight: selectedWeight,
               ),
         ),
       );
     });
   }
 
-  void _updateAge(int age) {
-    if (age != selectedAge && age >= minAge && age <= maxAge) {
-      // Provide subtle haptic feedback
+  void _updateWeight(int weight) {
+    if (weight != selectedWeight &&
+        weight >= minWeight &&
+        weight <= maxWeight) {
       HapticFeedback.selectionClick();
-
       setState(() {
-        selectedAge = age;
+        selectedWeight = weight;
       });
     }
   }
@@ -115,23 +107,20 @@ class _AgeInputScreenState extends State<AgeInputScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF05606B), // Exact teal from the image
+      backgroundColor: const Color(0xFF05606B),
       body: AnimatedOpacity(
         opacity: _showContent ? 1.0 : 0.0,
         duration: const Duration(milliseconds: 300),
         child: SafeArea(
           child: Column(
             children: [
-              // Top padding
               const SizedBox(height: 16),
 
-              // Back button and title area
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Back button
                     GestureDetector(
                           onTap: () {
                             HapticFeedback.lightImpact();
@@ -141,7 +130,7 @@ class _AgeInputScreenState extends State<AgeInputScreen>
                             children: [
                               const Icon(
                                 Icons.arrow_back_ios,
-                                color: Color(0xFFD6E56C), // Yellow-green color
+                                color: Color(0xFFD6E56C),
                                 size: 20,
                               ),
                               const SizedBox(width: 4),
@@ -164,11 +153,10 @@ class _AgeInputScreenState extends State<AgeInputScreen>
                           curve: Curves.easeOutQuad,
                         ),
 
-                    // Title
                     const SizedBox(height: 40),
                     const Center(
                           child: Text(
-                            'Berapa Umur Anda?',
+                            'Berat Badan Anda?',
                             style: TextStyle(
                               fontSize: 28,
                               color: Colors.white,
@@ -188,16 +176,13 @@ class _AgeInputScreenState extends State<AgeInputScreen>
                 ),
               ),
 
-              // Age display and picker area - takes remaining space
               Expanded(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Large selected age with animation
                     Animate(
-                          key: ValueKey<int>(selectedAge),
+                          key: ValueKey<int>(selectedWeight),
                           effects: [
-                            // Subtle scale animation when value changes
                             ScaleEffect(
                               begin: const Offset(0.95, 0.95),
                               end: const Offset(1.0, 1.0),
@@ -217,8 +202,8 @@ class _AgeInputScreenState extends State<AgeInputScreen>
                               );
                             },
                             child: Text(
-                              selectedAge.toString(),
-                              key: ValueKey<int>(selectedAge),
+                              selectedWeight.toString(),
+                              key: ValueKey<int>(selectedWeight),
                               style: const TextStyle(
                                 fontSize: 120,
                                 fontWeight: FontWeight.bold,
@@ -236,7 +221,6 @@ class _AgeInputScreenState extends State<AgeInputScreen>
                           curve: Curves.easeOutCubic,
                         ),
 
-                    // Triangle indicator with subtle bounce animation
                     const Icon(
                           Icons.arrow_drop_down,
                           color: Color(0xFFD6E56C),
@@ -257,26 +241,23 @@ class _AgeInputScreenState extends State<AgeInputScreen>
 
                     const SizedBox(height: 4),
 
-                    // Horizontal age picker with fade-in
                     Container(
                           height: 80,
-                          color: const Color(
-                            0xAABEE5AC,
-                          ), // Light green with slight transparency
+                          color: const Color(0xAABEE5AC),
                           child: ScrollablePositionedList.builder(
-                            itemCount: maxAge - minAge + 1,
+                            itemCount: maxWeight - minWeight + 1,
                             itemScrollController: itemScrollController,
                             scrollOffsetController: scrollOffsetController,
                             itemPositionsListener: itemPositionsListener,
                             scrollDirection: Axis.horizontal,
                             itemBuilder: (context, index) {
-                              final age = index + minAge;
-                              final isSelected = age == selectedAge;
+                              final weight = index + minWeight;
+                              final isSelected = weight == selectedWeight;
 
                               return GestureDetector(
                                 onTap: () {
-                                  _updateAge(age);
-                                  _scrollToSelectedAge();
+                                  _updateWeight(weight);
+                                  _scrollToSelectedWeight();
                                 },
                                 child: Container(
                                   width: 80,
@@ -294,10 +275,7 @@ class _AgeInputScreenState extends State<AgeInputScreen>
                                               ),
                                             )
                                             : null,
-                                    color:
-                                        isSelected
-                                            ? const Color(0xAABEE5AC)
-                                            : const Color(0xAABEE5AC),
+                                    color: const Color(0xAABEE5AC),
                                   ),
                                   child: Center(
                                     child: AnimatedDefaultTextStyle(
@@ -306,13 +284,16 @@ class _AgeInputScreenState extends State<AgeInputScreen>
                                       ),
                                       style: TextStyle(
                                         fontSize: isSelected ? 38 : 30,
-                                        fontWeight: FontWeight.bold,
+                                        fontWeight:
+                                            isSelected
+                                                ? FontWeight.bold
+                                                : FontWeight.normal,
                                         color:
                                             isSelected
                                                 ? Colors.white
-                                                : Colors.white.withOpacity(0.6),
+                                                : Colors.black,
                                       ),
-                                      child: Text(age.toString()),
+                                      child: Text(weight.toString()),
                                     ),
                                   ),
                                 ),
@@ -320,32 +301,20 @@ class _AgeInputScreenState extends State<AgeInputScreen>
                             },
                           ),
                         )
-                        .animate(delay: 900.ms)
-                        .fadeIn(duration: 500.ms, curve: Curves.easeOut),
+                        .animate(delay: 800.ms)
+                        .fadeIn(duration: 600.ms, curve: Curves.easeOut),
                   ],
                 ),
               ),
 
-              // Next button with elegant entrance animation
               Padding(
-                padding: const EdgeInsets.only(bottom: 40, left: 24, right: 24),
-                child: RoundedButton(
-                      text: 'Selanjutnya',
-                      onPressed: _onNext,
-                      color: AppColors.textHighlight,
-                      textColor: Colors.black,
-                      width: 300,
-                      height: 50,
-                      elevation: 3, // Add some nice elevation for depth
-                    )
-                    .animate(delay: 1100.ms)
-                    .fadeIn(duration: 600.ms, curve: Curves.easeOut)
-                    .slideY(
-                      begin: 0.3,
-                      end: 0,
-                      duration: 600.ms,
-                      curve: Curves.easeOutQuad,
-                    ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 16,
+                ),
+                child: RoundedButton(text: 'Selanjutnya', onPressed: _onNext)
+                    .animate(delay: 1000.ms)
+                    .fadeIn(duration: 600.ms, curve: Curves.easeOut),
               ),
             ],
           ),
