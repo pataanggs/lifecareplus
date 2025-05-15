@@ -99,7 +99,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                     curve: Interval(0.3, 1.0),
                   ),
                   child: const Text(
-                    'Bang cape bang, kita rehat sejenak',
+                    'srdyuiwghieurhdqwoheuidrqyhijkdhiyqehiohdysgaidhgagd',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.white,
