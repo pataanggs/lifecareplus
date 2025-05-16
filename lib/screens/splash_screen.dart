@@ -107,7 +107,7 @@ class _SplashScreenState extends State<SplashScreen>
                     curve: Interval(0.3, 1.0),
                   ),
                   child: const Text(
-                    'srdyuiwghieurhdqwoheuidrqyhijkdhiyqehiohdysgaidhgagd',
+                    'Your personal health companion',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Colors.white,

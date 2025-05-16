@@ -8,6 +8,7 @@ import '../../services/storage_service.dart';
 import '../../utils/colors.dart';
 import '../../utils/show_snackbar.dart';
 import '../../widgets/rounded_button.dart';
+import '../../models/user_model.dart';
 import '../notifications_permission_screen.dart';
 
 class ProfileDataScreen extends StatefulWidget {
@@ -73,9 +74,9 @@ class _ProfileDataScreenState extends State<ProfileDataScreen>
 
         if (userData != null) {
           setState(() {
-            fullNameController.text = userData['fullName'] ?? '';
-            nicknameController.text = userData['nickname'] ?? '';
-            phoneController.text = userData['phone'] ?? '';
+            fullNameController.text = userData.fullName;
+            nicknameController.text = userData.nickname;
+            phoneController.text = userData.phone;
           });
         }
       } catch (e) {
@@ -119,7 +120,6 @@ class _ProfileDataScreenState extends State<ProfileDataScreen>
       return;
     }
 
-
     try {
       String? profileImageUrl;
 
@@ -131,17 +131,26 @@ class _ProfileDataScreenState extends State<ProfileDataScreen>
       }
 
       // Update user profile
-      await _authService.updateUserProfile(_authService.currentUser!.uid, {
-        'fullName': fullNameController.text,
-        'nickname': nicknameController.text,
-        'email': emailController.text,
-        'phone': phoneController.text,
-        'gender': widget.selectedGender,
-        'age': widget.selectedAge,
-        'height': widget.selectedHeight,
-        'weight': widget.selectedWeight,
-        if (profileImageUrl != null) 'profileImageUrl': profileImageUrl,
-      });
+      final userModel = UserModel(
+        id: _authService.currentUser!.uid,
+        fullName: fullNameController.text,
+        nickname: nicknameController.text,
+        email: emailController.text,
+        phone: phoneController.text,
+        gender: widget.selectedGender,
+        age: widget.selectedAge,
+        height: widget.selectedHeight,
+        weight: widget.selectedWeight,
+        profileImageUrl: profileImageUrl,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      // Update user profile with UserModel
+      await _authService.updateUserProfile(
+        _authService.currentUser!.uid,
+        userModel,
+      );
 
       // Navigate to notification permission screen
       if (mounted) {
@@ -157,8 +166,7 @@ class _ProfileDataScreenState extends State<ProfileDataScreen>
         showSnackBar(context, 'Terjadi kesalahan saat menyimpan data');
       }
     } finally {
-      if (mounted) {
-      }
+      if (mounted) {}
     }
   }
 

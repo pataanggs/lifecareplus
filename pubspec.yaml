@@ -38,10 +38,11 @@ dependencies:
   simple_animations: ^5.2.0
   image_picker: ^1.1.2
   permission_handler: ^12.0.0+1
-  firebase_core: ^3.13.0
-  firebase_auth: ^5.5.3
-  cloud_firestore: ^5.6.7
-  firebase_storage: ^12.4.5
+  firebase_core: ^2.15.1
+  firebase_auth: ^4.9.0
+  cloud_firestore: ^4.9.1
+  firebase_storage: ^11.2.6
+  google_sign_in: ^6.2.1
   provider: ^6.1.5
 
   # The following adds the Cupertino Icons font to your application.
@@ -72,11 +73,11 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
-    - assets\lifecareplus_logo.png
-    - assets\Bot-Gender-Female.png
-    - assets\Bot-Gender-Male.png
-    - assets\animations\wave.json
-    - assets\tc_logo.png
+    - assets/lifecareplus_logo.png
+    - assets/Bot-Gender-Female.png
+    - assets/Bot-Gender-Male.png
+    - assets/animations/wave.json
+    - assets/tc_logo.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
