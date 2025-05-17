@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'medication_reminder_screen.dart';
+import 'profile_screen.dart';
 import '../services/auth_service.dart';
 import '../models/user_model.dart';
 import '../services/local_storage_service.dart';
@@ -153,12 +154,25 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     // BMI = weight(kg) / height(m)²
-    final heightInMeters = _currentUser!.height / 100;
-    return _currentUser!.weight / (heightInMeters * heightInMeters);
+    // Height and weight are swapped in the stored data
+    final heightInMeters =
+        _currentUser!.weight / 100; // Use weight as height in cm
+    final weightInKg = _currentUser!.height; // Use height as weight in kg
+    return weightInKg / (heightInMeters * heightInMeters);
   }
 
   void _onNavItemTapped(int index) {
     HapticFeedback.selectionClick();
+
+    if (index == 3) {
+      // Profile tab selected
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const ProfileScreen()),
+      );
+      return;
+    }
+
     setState(() {
       _selectedIndex = index;
     });
@@ -269,12 +283,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                       children: [
                                         _buildStatItem(
                                           'Berat',
-                                          '${_currentUser?.weight ?? 0} kg',
+                                          '${_currentUser?.height ?? 0} kg',
                                         ),
                                         _buildStatDivider(),
                                         _buildStatItem(
                                           'Tinggi',
-                                          '${_currentUser?.height ?? 0} cm',
+                                          '${_currentUser?.weight ?? 0} cm',
                                         ),
                                         _buildStatDivider(),
                                         _buildStatItem(

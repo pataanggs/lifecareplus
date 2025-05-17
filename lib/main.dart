@@ -7,6 +7,7 @@ import 'screens/home_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
 import 'screens/onboarding/gender_selection_screen.dart';
+import 'screens/profile_screen.dart';
 import 'dart:developer' as developer;
 import 'services/mock_data_initializer.dart';
 import 'services/auth_service.dart';
@@ -142,6 +143,7 @@ class LifeCareApp extends StatelessWidget {
         '/register': (context) => const RegisterScreen(),
         '/home': (context) => const HomeScreen(),
         '/onboarding': (context) => const GenderSelectionScreen(),
+        '/profile': (context) => const ProfileScreen(),
       },
     );
   }

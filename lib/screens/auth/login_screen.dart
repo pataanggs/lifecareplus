@@ -4,12 +4,10 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../services/auth_service.dart';
 import '../../services/mock_auth_service.dart';
 import '../../utils/colors.dart';
-import '../home_screen.dart';
 import '../../utils/show_snackbar.dart';
 import 'dart:developer' as developer;
 import '../../widgets/rounded_input.dart';
 import '../../widgets/rounded_button.dart';
-import 'register_screen.dart';
 import '../../services/local_storage_service.dart';
 
 class LoginScreen extends StatefulWidget {

@@ -94,7 +94,7 @@ class _AgeInputScreenState extends State<AgeInputScreen>
                 selectedGender: widget.selectedGender,
                 selectedAge: selectedAge,
                 selectedHeight:
-                    165, // default height, will be set in next screen
+                    173, // default height, will be set in next screen
               ),
         ),
       );
