@@ -25,8 +25,6 @@ class HeightInputScreen extends StatefulWidget {
 class _HeightInputScreenState extends State<HeightInputScreen>
     with SingleTickerProviderStateMixin {
   final ItemScrollController itemScrollController = ItemScrollController();
-  final ScrollOffsetController scrollOffsetController =
-      ScrollOffsetController();
   final ItemPositionsListener itemPositionsListener =
       ItemPositionsListener.create();
 
@@ -47,6 +45,22 @@ class _HeightInputScreenState extends State<HeightInputScreen>
     );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      itemPositionsListener.itemPositions.addListener(() {
+        final positions = itemPositionsListener.itemPositions.value;
+        if (positions.isNotEmpty) {
+          final centerItem = positions
+              .map((item) => MapEntry(item, (item.itemLeadingEdge - 0.5).abs()))
+              .reduce((a, b) => a.value < b.value ? a : b)
+              .key;
+
+          final indexInCenter = centerItem.index;
+          final heightInCenter = indexInCenter + minHeight;
+
+          if (heightInCenter != selectedHeight) {
+            setState(() => selectedHeight = heightInCenter);
+          }
+        }
+      });
       _scrollToSelectedHeight();
 
       Future.delayed(const Duration(milliseconds: 100), () {
@@ -280,8 +294,6 @@ class _HeightInputScreenState extends State<HeightInputScreen>
                                       itemCount: maxHeight - minHeight + 1,
                                       itemScrollController:
                                           itemScrollController,
-                                      scrollOffsetController:
-                                          scrollOffsetController,
                                       itemPositionsListener:
                                           itemPositionsListener,
                                       scrollDirection: Axis.vertical,

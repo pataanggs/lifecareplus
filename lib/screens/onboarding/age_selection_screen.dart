@@ -15,13 +15,13 @@ class AgeInputScreen extends StatefulWidget {
   State<AgeInputScreen> createState() => _AgeInputScreenState();
 }
 
+
 class _AgeInputScreenState extends State<AgeInputScreen>
     with SingleTickerProviderStateMixin {
   final ItemScrollController itemScrollController = ItemScrollController();
   final ScrollOffsetController scrollOffsetController =
       ScrollOffsetController();
-  final ItemPositionsListener itemPositionsListener =
-      ItemPositionsListener.create();
+  final ItemPositionsListener itemPositionsListener = ItemPositionsListener.create();
 
   // Animation controller for coordinated animations
   late AnimationController _animationController;
@@ -48,8 +48,27 @@ class _AgeInputScreenState extends State<AgeInputScreen>
       selectedAge = 25;
     }
 
+    itemPositionsListener.itemPositions.addListener(() {
+      final positions = itemPositionsListener.itemPositions.value;
+
+      if (positions.isNotEmpty) {
+        final centerItem = positions
+            .map((item) => MapEntry(item, (item.itemLeadingEdge - 0.5).abs()))
+            .reduce((a, b) => a.value < b.value ? a : b)
+            .key;
+
+        final indexInCenter = centerItem.index;
+        final ageInCenter = indexInCenter + minAge;
+
+        if (ageInCenter != selectedAge) {
+          setState(() => selectedAge = ageInCenter);
+        }
+      }
+    });
+
     // Scroll to the selected age with a slight delay to ensure the list is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
+
       _scrollToSelectedAge();
 
       // Start animations after a short delay
@@ -73,7 +92,7 @@ class _AgeInputScreenState extends State<AgeInputScreen>
       itemScrollController.scrollTo(
         index: selectedAge - minAge,
         duration: const Duration(milliseconds: 300),
-        alignment: 0.5,
+        alignment: 0.5, // tengah layar
       );
     }
   }
@@ -217,7 +236,7 @@ class _AgeInputScreenState extends State<AgeInputScreen>
                               );
                             },
                             child: Text(
-                              selectedAge.toString(),
+                              '$selectedAge',
                               key: ValueKey<int>(selectedAge),
                               style: const TextStyle(
                                 fontSize: 120,
@@ -266,7 +285,6 @@ class _AgeInputScreenState extends State<AgeInputScreen>
                           child: ScrollablePositionedList.builder(
                             itemCount: maxAge - minAge + 1,
                             itemScrollController: itemScrollController,
-                            scrollOffsetController: scrollOffsetController,
                             itemPositionsListener: itemPositionsListener,
                             scrollDirection: Axis.horizontal,
                             itemBuilder: (context, index) {

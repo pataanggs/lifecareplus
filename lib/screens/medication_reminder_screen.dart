@@ -1,9 +1,13 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../utils/colors.dart';
 import '../widgets/rounded_button.dart';
 import 'add_medication_screen.dart';
+import 'package:intl/intl.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 class MedicationReminderScreen extends StatefulWidget {
   const MedicationReminderScreen({super.key});
@@ -15,6 +19,10 @@ class MedicationReminderScreen extends StatefulWidget {
 
 class _MedicationReminderScreenState extends State<MedicationReminderScreen> {
   bool _showContent = false;
+  bool _isLoading = true;
+  List<Map<String, dynamic>> _medications = [];
+  String _nickname = 'Pengguna';
+  String _formattedDate = '';
 
   @override
   void initState() {
@@ -23,18 +31,75 @@ class _MedicationReminderScreenState extends State<MedicationReminderScreen> {
       if (mounted) setState(() => _showContent = true);
     });
 
-    // Check if user has existing medications
-    _checkExistingMedications();
+    initializeDateFormatting('id_ID').then((_) {
+      _setFormattedDate();
+      if (mounted) setState(() {});
+    });
+
+      _fetchMedications();
+    _loadUserData();
+
   }
 
-  Future<void> _checkExistingMedications() async {
+  void _setFormattedDate() {
+    final now = DateTime.now();
+    final formatter = DateFormat('EEEE, MMM d', 'id_ID'); // Contoh: Sabtu, Des 18
+    final formatted = formatter.format(now);
+
+    // Set kapital di awal setiap kata (optional)
+    _formattedDate = formatted
+        .split(' ')
+        .map((word) =>
+    word.isNotEmpty ? '${word[0].toUpperCase()}${word.substring(1)}' : '')
+        .join(' ');
+
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _loadUserData() async {
     try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) return;
+
+      final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      if (doc.exists) {
+        final data = doc.data()!;
+        if (mounted) {
+          setState(() {
+            _nickname = data['nickname'] ?? 'Pengguna';
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading user data: $e');
+    }
+  }
+
+  Future<void> _fetchMedications() async {
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) return;
+
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('medications')
+          .where('isActive', isEqualTo: true)
+          .get();
+
+      final meds = querySnapshot.docs
+          .map((doc) => {'id': doc.id, ...doc.data()})
+          .toList();
+
       if (mounted) {
         setState(() {
+          _medications = meds;
+          _isLoading = false;
         });
       }
     } catch (e) {
-      debugPrint('Error checking medications: $e');
+      debugPrint('Error fetching medications: $e');
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -43,9 +108,31 @@ class _MedicationReminderScreenState extends State<MedicationReminderScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const AddMedicationScreen()),
-    );
+    ).then((_) {
+      // Refresh meds list after returning from AddMedicationScreen
+      _fetchMedications();
+    });
   }
 
+  Widget _buildMedicationCard(Map<String, dynamic> medication) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 4,
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        title: Text(
+          medication['name'] ?? 'Nama Obat',
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
+        subtitle: Text(
+          medication['dosage'] ?? 'Dosis tidak tersedia',
+          style: const TextStyle(fontSize: 14),
+        ),
+        trailing: Icon(Icons.medication_outlined, color: AppColors.textHighlight),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -67,10 +154,12 @@ class _MedicationReminderScreenState extends State<MedicationReminderScreen> {
           opacity: _showContent ? 1.0 : 0.0,
           duration: const Duration(milliseconds: 300),
           child: SafeArea(
-            child: Column(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header with profile and greeting
+                // Header, back button, etc. (bisa kamu sesuaikan seperti sebelumnya)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
                   child: Row(
@@ -81,18 +170,16 @@ class _MedicationReminderScreenState extends State<MedicationReminderScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Hi, Asavira',
+                            'Hi, $_nickname',
                             style: TextStyle(
                               fontSize: 26,
                               fontWeight: FontWeight.bold,
                               color: Colors.white.withOpacity(0.9),
                             ),
                           ).animate(delay: 100.ms).fadeIn(duration: 400.ms),
-
                           const SizedBox(height: 4),
-
                           Text(
-                            'SABTU, DES 28',
+                            _formattedDate,
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
@@ -122,24 +209,24 @@ class _MedicationReminderScreenState extends State<MedicationReminderScreen> {
 
                 const SizedBox(height: 24),
 
-                // Back button and page title
+                // Back button & title
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Row(
                     children: [
-                      // Back button
                       GestureDetector(
-                        onTap: () => Navigator.pop(context),
+                        onTap: () {
+                          HapticFeedback.lightImpact();
+                          Navigator.pushNamedAndRemoveUntil(
+                              context, '/home', (route) => false);
+                        },
                         child: const Icon(
                           Icons.arrow_back_ios,
                           color: Colors.white,
                           size: 20,
                         ),
                       ),
-
                       const Spacer(),
-
-                      // Title
                       const Text(
                         'Pengobatan',
                         style: TextStyle(
@@ -148,174 +235,75 @@ class _MedicationReminderScreenState extends State<MedicationReminderScreen> {
                           color: Colors.white,
                         ),
                       ),
-
                       const Spacer(),
-
-                      // Empty space to balance layout
                       const SizedBox(width: 20),
                     ],
                   ).animate(delay: 300.ms).fadeIn(duration: 400.ms),
                 ),
 
-                const SizedBox(height: 40),
+                const SizedBox(height: 16),
 
-                // Medication calendar icon
-                Center(
-                  child: Column(
+                Expanded(
+                  child: _medications.isEmpty
+                      ? Center(
+                    child: RoundedButton(
+                      text: 'Buat Pengingat Pertama',
+                      onPressed: _createReminder,
+                      color: AppColors.textHighlight,
+                      textColor: Colors.black,
+                      width: 300,
+                      height: 50,
+                      borderRadius: 25,
+                      elevation: 3,
+                    )
+                        .animate(delay: 700.ms)
+                        .fadeIn(duration: 600.ms, curve: Curves.easeOut)
+                        .slideY(
+                      begin: 0.3,
+                      end: 0,
+                      duration: 600.ms,
+                      curve: Curves.easeOutQuad,
+                    ),
+                  )
+                      : Column(
                     children: [
-                      SizedBox(
-                            width: 160,
-                            height: 160,
-                            child: Column(
-                              children: [
-                                // Calendar header
-                                Container(
-                                  width: 150,
-                                  height: 50,
-                                  decoration: const BoxDecoration(
-                                    color: Color(0xFF05606B),
-                                    borderRadius: BorderRadius.only(
-                                      topLeft: Radius.circular(10),
-                                      topRight: Radius.circular(10),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceEvenly,
-                                    children: [
-                                      Container(
-                                        width: 15,
-                                        height: 30,
-                                        color: Color(0xFF05606B),
-                                      ),
-                                      Container(
-                                        width: 50,
-                                        height: 10,
-                                        color: Colors.transparent,
-                                      ),
-                                      Container(
-                                        width: 15,
-                                        height: 30,
-                                        color: Color(0xFF05606B),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-
-                                // Calendar body
-                                Container(
-                                  width: 150,
-                                  height: 100,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF9DBDC7),
-                                    borderRadius: const BorderRadius.only(
-                                      bottomLeft: Radius.circular(10),
-                                      bottomRight: Radius.circular(10),
-                                    ),
-                                  ),
-                                  child: GridView.builder(
-                                    padding: const EdgeInsets.all(16),
-                                    gridDelegate:
-                                        const SliverGridDelegateWithFixedCrossAxisCount(
-                                          crossAxisCount: 3,
-                                          mainAxisSpacing: 8,
-                                          crossAxisSpacing: 8,
-                                          childAspectRatio: 1,
-                                        ),
-                                    physics:
-                                        const NeverScrollableScrollPhysics(),
-                                    itemCount: 6,
-                                    itemBuilder: (context, index) {
-                                      return Container(
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFF05606B),
-                                          borderRadius: BorderRadius.circular(
-                                            2,
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )
-                          .animate(delay: 400.ms)
-                          .fadeIn(duration: 600.ms)
-                          .scale(
-                            begin: const Offset(0.8, 0.8),
-                            end: const Offset(1.0, 1.0),
-                            duration: 600.ms,
-                            curve: Curves.easeOutCubic,
-                          ),
-
-                      const SizedBox(height: 48),
-
-                      // Title text
-                      const Text(
-                        'Mulai disini',
-                        style: TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                      Expanded(
+                        child: ListView.builder(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          itemCount: _medications.length,
+                          itemBuilder: (context, index) {
+                            final medication = _medications[index];
+                            return _buildMedicationCard(medication);
+                          },
                         ),
-                      ).animate(delay: 500.ms).fadeIn(duration: 400.ms),
+                      ),
 
-                      const SizedBox(height: 24),
-
-                      // Description
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 40),
-                        child: Text(
-                          'Buat Pengingat untuk pengobatan Anda, lacak stok obat, dan banyak lagi.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 16,
-                            height: 1.4,
-                            color: Colors.black.withOpacity(0.7),
-                          ),
-                        ),
-                      ).animate(delay: 600.ms).fadeIn(duration: 400.ms),
-
-                      const SizedBox(height: 40),
-
-                      // Create reminder button with consistent styling
+                      // Button tambah pengingat di bawah card
                       Padding(
                         padding: const EdgeInsets.only(
-                          left: 24,
-                          right: 24,
-                          bottom: 16,
-                          top: 40,
-                        ),
+                            left: 24, right: 24, bottom: 40),
                         child: RoundedButton(
-                              text: 'Buat Pengingat Pertama',
-                              onPressed: _createReminder,
-                              color:
-                                  AppColors
-                                      .textHighlight, // Using the standard highlight color
-                              textColor:
-                                  Colors.black, // Black text for consistency
-                              width:
-                                  300, // Standard width used in other screens
-                              height: 50, // Standard height
-                              borderRadius: 25, // Standard borderRadius
-                              elevation:
-                                  3, // Standard elevation for shadow consistency
-                            )
+                          text: 'Tambah Pengingat',
+                          onPressed: _createReminder,
+                          color: AppColors.textHighlight,
+                          textColor: Colors.black,
+                          width: 300,
+                          height: 50,
+                          borderRadius: 25,
+                          elevation: 3,
+                        )
                             .animate(delay: 700.ms)
                             .fadeIn(duration: 600.ms, curve: Curves.easeOut)
                             .slideY(
-                              begin: 0.3,
-                              end: 0,
-                              duration: 600.ms,
-                              curve: Curves.easeOutQuad,
-                            ),
-                      ),
+                          begin: 0.3,
+                          end: 0,
+                          duration: 600.ms,
+                          curve: Curves.easeOutQuad,
+                        ),
+                      )
                     ],
                   ),
                 ),
-
-                const Spacer(),
               ],
             ),
           ),

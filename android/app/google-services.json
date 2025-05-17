@@ -1,0 +1,62 @@
+{
+  "project_info": {
+    "project_number": "338603757091",
+    "project_id": "lifecareplus-e76e9",
+    "storage_bucket": "lifecareplus-e76e9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:338603757091:android:8343b2a3b04fb48ad16b96",
+        "android_client_info": {
+          "package_name": "com.example.lifecareplus"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "338603757091-80nekvun6von51uukpu4roc88ndrdc1q.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.lifecareplus",
+            "certificate_hash": "38a42a6d15947c08b2fd93da1420d45a954d3f72"
+          }
+        },
+        {
+          "client_id": "338603757091-ubmn0bt1bht9p9qvsifo8urhqsp17obb.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.lifecareplus",
+            "certificate_hash": "b9f02406ca4b10e9679f2c529a45501fb8a260ae"
+          }
+        },
+        {
+          "client_id": "338603757091-udccbr9jhknfsa865pdst7fqhumci8ti.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBKFR2-2hGt23_htRcb4zwI5mAr3FAXs5Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "338603757091-2a2i3ipdhaai830ad6qkq66t18eknts7.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "338603757091-tfnrtumci0fbetgdjd8pn5kghvu9qed6.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.lifecareplus"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

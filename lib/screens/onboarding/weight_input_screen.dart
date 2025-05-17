@@ -25,8 +25,6 @@ class WeightInputScreen extends StatefulWidget {
 class _WeightInputScreenState extends State<WeightInputScreen>
     with SingleTickerProviderStateMixin {
   final ItemScrollController itemScrollController = ItemScrollController();
-  final ScrollOffsetController scrollOffsetController =
-      ScrollOffsetController();
   final ItemPositionsListener itemPositionsListener =
       ItemPositionsListener.create();
 
@@ -47,6 +45,23 @@ class _WeightInputScreenState extends State<WeightInputScreen>
     );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      itemPositionsListener.itemPositions.addListener(() {
+        final positions = itemPositionsListener.itemPositions.value;
+        if (positions.isNotEmpty) {
+          final centerItem = positions
+              .map((item) => MapEntry(item, (item.itemLeadingEdge - 0.5).abs()))
+              .reduce((a, b) => a.value < b.value ? a : b)
+              .key;
+
+          final indexInCenter = centerItem.index;
+          final weightInCenter = indexInCenter + minWeight;
+
+          if (weightInCenter != selectedWeight) {
+            setState(() => selectedWeight = weightInCenter);
+          }
+        }
+      });
+
       _scrollToSelectedWeight();
 
       Future.delayed(const Duration(milliseconds: 100), () {
@@ -263,8 +278,7 @@ class _WeightInputScreenState extends State<WeightInputScreen>
                           child: ScrollablePositionedList.builder(
                             itemCount: maxWeight - minWeight + 1,
                             itemScrollController: itemScrollController,
-                            scrollOffsetController: scrollOffsetController,
-                            itemPositionsListener: itemPositionsListener,
+                            itemPositionsListener: itemPositionsListener, // penting!
                             scrollDirection: Axis.horizontal,
                             itemBuilder: (context, index) {
                               final weight = index + minWeight;
@@ -278,36 +292,21 @@ class _WeightInputScreenState extends State<WeightInputScreen>
                                 child: Container(
                                   width: 80,
                                   decoration: BoxDecoration(
-                                    border:
-                                        isSelected
-                                            ? const Border(
-                                              left: BorderSide(
-                                                color: Colors.white,
-                                                width: 1,
-                                              ),
-                                              right: BorderSide(
-                                                color: Colors.white,
-                                                width: 1,
-                                              ),
-                                            )
-                                            : null,
+                                    border: isSelected
+                                        ? const Border(
+                                      left: BorderSide(color: Colors.white, width: 1),
+                                      right: BorderSide(color: Colors.white, width: 1),
+                                    )
+                                        : null,
                                     color: const Color(0xAABEE5AC),
                                   ),
                                   child: Center(
                                     child: AnimatedDefaultTextStyle(
-                                      duration: const Duration(
-                                        milliseconds: 200,
-                                      ),
+                                      duration: const Duration(milliseconds: 200),
                                       style: TextStyle(
                                         fontSize: isSelected ? 38 : 30,
-                                        fontWeight:
-                                            isSelected
-                                                ? FontWeight.bold
-                                                : FontWeight.normal,
-                                        color:
-                                            isSelected
-                                                ? Colors.white
-                                                : Colors.black,
+                                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                        color: isSelected ? Colors.white : Colors.black,
                                       ),
                                       child: Text(weight.toString()),
                                     ),
@@ -316,6 +315,7 @@ class _WeightInputScreenState extends State<WeightInputScreen>
                               );
                             },
                           ),
+
                         )
                         .animate(delay: 800.ms)
                         .fadeIn(duration: 600.ms, curve: Curves.easeOut),
