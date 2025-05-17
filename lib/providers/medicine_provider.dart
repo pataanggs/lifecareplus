@@ -1,21 +1,23 @@
 import 'package:flutter/foundation.dart';
-import '../services/medicine_service.dart';
-import '../models/medicine_model.dart';
 import 'dart:io';
+import '../models/medicine_model.dart';
+import '../services/mock_medicine_service.dart';
+import '../services/mock_storage_service.dart';
 
 class MedicineProvider with ChangeNotifier {
-  final MedicineService _medicineService = MedicineService();
-  List<MedicineModel> _medicines = [];
+  final MockMedicineService _medicineService = MockMedicineService();
+  final MockStorageService _storageService = MockStorageService();
+  List<Medicine> _medicines = [];
   bool _isLoading = false;
   String? _error;
 
-  List<MedicineModel> get medicines => _medicines;
+  List<Medicine> get medicines => _medicines;
   bool get isLoading => _isLoading;
   String? get error => _error;
 
   // Listen to medicines stream for the current user
   void listenToMedicines() {
-    _medicineService.getMedicinesStream().listen(
+    _medicineService.streamMedicines().listen(
       (medicines) {
         _medicines = medicines;
         _error = null;
@@ -32,13 +34,14 @@ class MedicineProvider with ChangeNotifier {
   // Add a new medicine
   Future<bool> addMedicine({
     required String name,
-    required String description,
     required String dosage,
     required String frequency,
-    required String interval,
-    required List<DateTime> scheduledTimes,
-    DateTime? startDate,
-    DateTime? endDate,
+    required String timeOfDay,
+    required DateTime startDate,
+    required DateTime endDate,
+    required String notes,
+    required String color,
+    required bool reminderEnabled,
     File? imageFile,
   }) async {
     _isLoading = true;
@@ -46,31 +49,35 @@ class MedicineProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      // Create medicine model
-      final medicine = MedicineModel(
-        id: '', // Will be set by Firestore
-        userId: _medicineService.currentUserId ?? '',
+      // Upload image if provided
+      String? imageUrl;
+      if (imageFile != null) {
+        imageUrl = await _storageService.uploadMedicationImage(
+          imageFile,
+          Medicine.generateId(),
+        );
+      }
+
+      // Create medicine model with a new ID
+      final String medicineId = Medicine.generateId();
+      final medicine = Medicine(
+        id: medicineId,
         name: name,
-        description: description,
         dosage: dosage,
         frequency: frequency,
-        interval: interval,
-        scheduledTimes: scheduledTimes,
+        timeOfDay: timeOfDay,
         startDate: startDate,
         endDate: endDate,
-        takenDates: [],
-        missedDates: [],
-        isActive: true,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
+        notes: notes,
+        color: color,
+        userId: 'current_user', // Will be set by the service
+        reminderEnabled: reminderEnabled,
+        imageUrl: imageUrl,
       );
 
-      // Add to Firestore
-      final medicineId = await _medicineService.addMedicine(
-        medicine,
-        imageFile: imageFile,
-      );
-      return medicineId != null;
+      // Add to local storage
+      await _medicineService.addMedicine(medicine);
+      return true;
     } catch (e) {
       _error = 'Failed to add medicine: $e';
       debugPrint(_error);
@@ -85,13 +92,14 @@ class MedicineProvider with ChangeNotifier {
   Future<bool> updateMedicine({
     required String id,
     String? name,
-    String? description,
     String? dosage,
     String? frequency,
-    String? interval,
-    List<DateTime>? scheduledTimes,
+    String? timeOfDay,
     DateTime? startDate,
     DateTime? endDate,
+    String? notes,
+    String? color,
+    bool? reminderEnabled,
     File? imageFile,
   }) async {
     _isLoading = true;
@@ -100,30 +108,35 @@ class MedicineProvider with ChangeNotifier {
 
     try {
       // Find existing medicine
-      final existingIndex = _medicines.indexWhere((m) => m.id == id);
-      if (existingIndex < 0) {
+      final existingMedicine = await _medicineService.getMedicineById(id);
+      if (existingMedicine == null) {
         _error = 'Medicine not found';
         return false;
       }
 
+      // Upload new image if provided
+      String? imageUrl;
+      if (imageFile != null) {
+        imageUrl = await _storageService.uploadMedicationImage(imageFile, id);
+      }
+
       // Create updated medicine model
-      final existingMedicine = _medicines[existingIndex];
       final updatedMedicine = existingMedicine.copyWith(
         name: name,
-        description: description,
         dosage: dosage,
         frequency: frequency,
-        interval: interval,
-        scheduledTimes: scheduledTimes,
+        timeOfDay: timeOfDay,
         startDate: startDate,
         endDate: endDate,
+        notes: notes,
+        color: color,
+        reminderEnabled: reminderEnabled,
+        imageUrl: imageFile != null ? imageUrl : existingMedicine.imageUrl,
       );
 
-      // Update in Firestore
-      return await _medicineService.updateMedicine(
-        updatedMedicine,
-        imageFile: imageFile,
-      );
+      // Update in storage
+      await _medicineService.updateMedicine(updatedMedicine);
+      return true;
     } catch (e) {
       _error = 'Failed to update medicine: $e';
       debugPrint(_error);
@@ -152,39 +165,26 @@ class MedicineProvider with ChangeNotifier {
     }
   }
 
-  // Mark medicine as taken
-  Future<bool> markMedicineAsTaken(String id, DateTime takenDate) async {
-    try {
-      return await _medicineService.markMedicineAsTaken(id, takenDate);
-    } catch (e) {
-      _error = 'Failed to mark medicine as taken: $e';
-      debugPrint(_error);
-      return false;
-    }
-  }
-
-  // Mark medicine as missed
-  Future<bool> markMedicineAsMissed(String id, DateTime missedDate) async {
-    try {
-      return await _medicineService.markMedicineAsMissed(id, missedDate);
-    } catch (e) {
-      _error = 'Failed to mark medicine as missed: $e';
-      debugPrint(_error);
-      return false;
-    }
-  }
-
   // Get today's medicine schedule
-  List<MedicineModel> getTodayMedicines() {
+  List<Medicine> getTodayMedicines() {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
     return _medicines.where((medicine) {
-      // Check if the medicine is scheduled for today
-      return medicine.scheduledTimes.any((time) {
-        final scheduleDate = DateTime(time.year, time.month, time.day);
-        return scheduleDate.isAtSameMomentAs(today);
-      });
+      // Check if medicine is active today (between start and end dates)
+      final medicineStartDate = DateTime(
+        medicine.startDate.year,
+        medicine.startDate.month,
+        medicine.startDate.day,
+      );
+      final medicineEndDate = DateTime(
+        medicine.endDate.year,
+        medicine.endDate.month,
+        medicine.endDate.day,
+      );
+
+      return !today.isBefore(medicineStartDate) &&
+          !today.isAfter(medicineEndDate);
     }).toList();
   }
 }

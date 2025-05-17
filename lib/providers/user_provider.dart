@@ -20,7 +20,7 @@ class UserProvider with ChangeNotifier {
     } else if (_user != null && _user!.fullName.isNotEmpty) {
       return _user!.fullName.split(' ')[0];
     }
-    return 'User';
+    return 'Guest';
   }
 
   // Get profile image URL
@@ -64,18 +64,22 @@ class UserProvider with ChangeNotifier {
       notifyListeners();
 
       // Create updated user model
-      final updatedUser = _user!.copyWith(
-        fullName: fullName,
-        nickname: nickname,
-        phone: phone,
-        gender: gender,
-        age: age,
-        height: height,
-        weight: weight,
-        profileImageUrl: profileImageUrl,
+      final updatedUser = UserModel(
+        id: _user!.id,
+        fullName: fullName ?? _user!.fullName,
+        nickname: nickname ?? _user!.nickname,
+        email: _user!.email,
+        phone: phone ?? _user!.phone,
+        gender: gender ?? _user!.gender,
+        age: age ?? _user!.age,
+        height: height ?? _user!.height,
+        weight: weight ?? _user!.weight,
+        profileImageUrl: profileImageUrl ?? _user!.profileImageUrl,
+        createdAt: _user!.createdAt,
+        updatedAt: DateTime.now(),
       );
 
-      // Update in Firestore
+      // Update in storage
       await _authService.updateUserProfile(_user!.id, updatedUser);
 
       // Update local state

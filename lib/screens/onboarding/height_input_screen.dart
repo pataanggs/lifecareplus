@@ -77,7 +77,7 @@ class _HeightInputScreenState extends State<HeightInputScreen>
   void _onNext() {
     HapticFeedback.mediumImpact();
     print(
-      '[LOG] Gender: ${widget.selectedGender}, Age: ${widget.selectedAge}, Height: ${widget.selectedWeight}, Weight: $selectedHeight',
+      '[LOG] Gender: ${widget.selectedGender}, Age: ${widget.selectedAge}, Height: $selectedHeight, Weight: ${widget.selectedWeight}',
     );
     _animationController.reverse().then((_) {
       Navigator.push(
@@ -87,8 +87,8 @@ class _HeightInputScreenState extends State<HeightInputScreen>
               (context) => ProfileDataScreen(
                 selectedGender: widget.selectedGender,
                 selectedAge: widget.selectedAge,
-                selectedHeight: widget.selectedWeight,
-                selectedWeight: selectedHeight,
+                selectedHeight: selectedHeight,
+                selectedWeight: widget.selectedWeight,
               ),
         ),
       );

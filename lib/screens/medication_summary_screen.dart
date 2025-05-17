@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../services/medication_service.dart';
+import '../services/mock_medication_service.dart';
 import '../utils/colors.dart';
 import '../utils/show_snackbar.dart';
 import '../widgets/rounded_button.dart';
@@ -37,7 +37,7 @@ class MedicationSummaryScreen extends StatefulWidget {
 class _MedicationSummaryScreenState extends State<MedicationSummaryScreen> {
   bool _showContent = false;
   bool _isLoading = false;
-  final MedicationService _medicationService = MedicationService();
+  final MockMedicationService _medicationService = MockMedicationService();
 
   @override
   void initState() {
@@ -53,7 +53,7 @@ class _MedicationSummaryScreenState extends State<MedicationSummaryScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Save medication data to Firestore
+      // Save medication data to local storage
       await _medicationService.addMedication(
         name: widget.medicationName,
         frequency: widget.frequency,

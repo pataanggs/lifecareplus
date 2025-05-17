@@ -1,132 +1,101 @@
-class MedicineModel {
+class Medicine {
   final String id;
-  final String userId;
   final String name;
-  final String description;
   final String dosage;
   final String frequency;
-  final String interval;
-  final List<DateTime> scheduledTimes;
-  final DateTime? startDate;
-  final DateTime? endDate;
+  final String timeOfDay;
+  final DateTime startDate;
+  final DateTime endDate;
+  final String notes;
+  final String color;
+  final String userId;
+  final bool reminderEnabled;
   final String? imageUrl;
-  final List<DateTime>? takenDates;
-  final List<DateTime>? missedDates;
-  final bool isActive;
-  final DateTime createdAt;
-  final DateTime updatedAt;
 
-  MedicineModel({
+  Medicine({
     required this.id,
-    required this.userId,
     required this.name,
-    required this.description,
     required this.dosage,
     required this.frequency,
-    required this.interval,
-    required this.scheduledTimes,
-    this.startDate,
-    this.endDate,
+    required this.timeOfDay,
+    required this.startDate,
+    required this.endDate,
+    required this.notes,
+    required this.color,
+    required this.userId,
+    required this.reminderEnabled,
     this.imageUrl,
-    this.takenDates,
-    this.missedDates,
-    this.isActive = true,
-    required this.createdAt,
-    required this.updatedAt,
   });
 
-  factory MedicineModel.fromMap(Map<String, dynamic> map, String id) {
-    return MedicineModel(
-      id: id,
-      userId: map['userId'] ?? '',
-      name: map['name'] ?? '',
-      description: map['description'] ?? '',
-      dosage: map['dosage'] ?? '',
-      frequency: map['frequency'] ?? '',
-      interval: map['interval'] ?? '',
-      scheduledTimes: List<DateTime>.from(
-        (map['scheduledTimes'] ?? []).map((x) => x.toDate()),
-      ),
-      startDate: map['startDate']?.toDate(),
-      endDate: map['endDate']?.toDate(),
-      imageUrl: map['imageUrl'],
-      takenDates:
-          map['takenDates'] != null
-              ? List<DateTime>.from(map['takenDates'].map((x) => x.toDate()))
-              : [],
-      missedDates:
-          map['missedDates'] != null
-              ? List<DateTime>.from(map['missedDates'].map((x) => x.toDate()))
-              : [],
-      isActive: map['isActive'] ?? true,
-      createdAt: map['createdAt']?.toDate() ?? DateTime.now(),
-      updatedAt: map['updatedAt']?.toDate() ?? DateTime.now(),
+  // Create a copy of this Medicine with updated fields
+  Medicine copyWith({
+    String? id,
+    String? name,
+    String? dosage,
+    String? frequency,
+    String? timeOfDay,
+    DateTime? startDate,
+    DateTime? endDate,
+    String? notes,
+    String? color,
+    String? userId,
+    bool? reminderEnabled,
+    String? imageUrl,
+  }) {
+    return Medicine(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      dosage: dosage ?? this.dosage,
+      frequency: frequency ?? this.frequency,
+      timeOfDay: timeOfDay ?? this.timeOfDay,
+      startDate: startDate ?? this.startDate,
+      endDate: endDate ?? this.endDate,
+      notes: notes ?? this.notes,
+      color: color ?? this.color,
+      userId: userId ?? this.userId,
+      reminderEnabled: reminderEnabled ?? this.reminderEnabled,
+      imageUrl: imageUrl ?? this.imageUrl,
     );
   }
 
+  // Convert Medicine to a Map
   Map<String, dynamic> toMap() {
     return {
-      'userId': userId,
+      'id': id,
       'name': name,
-      'description': description,
       'dosage': dosage,
       'frequency': frequency,
-      'interval': interval,
-      'scheduledTimes': scheduledTimes,
-      'startDate': startDate,
-      'endDate': endDate,
+      'timeOfDay': timeOfDay,
+      'startDate': startDate.millisecondsSinceEpoch,
+      'endDate': endDate.millisecondsSinceEpoch,
+      'notes': notes,
+      'color': color,
+      'userId': userId,
+      'reminderEnabled': reminderEnabled,
       'imageUrl': imageUrl,
-      'takenDates': takenDates,
-      'missedDates': missedDates,
-      'isActive': isActive,
-      'createdAt': createdAt,
-      'updatedAt': DateTime.now(),
     };
   }
 
-  MedicineModel copyWith({
-    String? name,
-    String? description,
-    String? dosage,
-    String? frequency,
-    String? interval,
-    List<DateTime>? scheduledTimes,
-    DateTime? startDate,
-    DateTime? endDate,
-    String? imageUrl,
-    List<DateTime>? takenDates,
-    List<DateTime>? missedDates,
-    bool? isActive,
-  }) {
-    return MedicineModel(
-      id: this.id,
-      userId: this.userId,
-      name: name ?? this.name,
-      description: description ?? this.description,
-      dosage: dosage ?? this.dosage,
-      frequency: frequency ?? this.frequency,
-      interval: interval ?? this.interval,
-      scheduledTimes: scheduledTimes ?? this.scheduledTimes,
-      startDate: startDate ?? this.startDate,
-      endDate: endDate ?? this.endDate,
-      imageUrl: imageUrl ?? this.imageUrl,
-      takenDates: takenDates ?? this.takenDates,
-      missedDates: missedDates ?? this.missedDates,
-      isActive: isActive ?? this.isActive,
-      createdAt: this.createdAt,
-      updatedAt: DateTime.now(),
+  // Create a Medicine from a Map
+  factory Medicine.fromMap(Map<String, dynamic> map) {
+    return Medicine(
+      id: map['id'],
+      name: map['name'],
+      dosage: map['dosage'],
+      frequency: map['frequency'],
+      timeOfDay: map['timeOfDay'],
+      startDate: DateTime.fromMillisecondsSinceEpoch(map['startDate']),
+      endDate: DateTime.fromMillisecondsSinceEpoch(map['endDate']),
+      notes: map['notes'],
+      color: map['color'],
+      userId: map['userId'],
+      reminderEnabled: map['reminderEnabled'],
+      imageUrl: map['imageUrl'],
     );
   }
 
-  // Mark medicine as taken
-  MedicineModel markAsTaken(DateTime takenDate) {
-    final List<DateTime> newTakenDates = [...?takenDates, takenDate];
-    return copyWith(takenDates: newTakenDates);
-  }
-
-  // Mark medicine as missed
-  MedicineModel markAsMissed(DateTime missedDate) {
-    final List<DateTime> newMissedDates = [...?missedDates, missedDate];
-    return copyWith(missedDates: newMissedDates);
+  // Generate a new ID for a medicine
+  static String generateId() {
+    return 'med_${DateTime.now().millisecondsSinceEpoch}_${(100000 + (DateTime.now().microsecond % 100000))}';
   }
 }

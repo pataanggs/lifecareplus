@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../services/auth_service.dart';
-import '../../services/storage_service.dart';
+import '../../services/mock_storage_service.dart';
 import '../../utils/colors.dart';
 import '../../utils/show_snackbar.dart';
 import '../../widgets/rounded_button.dart';
@@ -37,7 +37,7 @@ class _ProfileDataScreenState extends State<ProfileDataScreen>
   final phoneController = TextEditingController();
 
   final AuthService _authService = AuthService();
-  final StorageService _storageService = StorageService();
+  final MockStorageService _storageService = MockStorageService();
 
   File? _profileImage;
   bool _showContent = false;

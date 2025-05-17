@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import '../services/medication_service.dart';
+import '../services/mock_medication_service.dart';
 import '../utils/colors.dart';
 import '../widgets/rounded_button.dart';
 import 'add_medication_screen.dart';
@@ -16,8 +15,8 @@ class MedicationListScreen extends StatefulWidget {
 
 class _MedicationListScreenState extends State<MedicationListScreen> {
   bool _showContent = false;
-  final MedicationService _medicationService = MedicationService();
-  
+  final MockMedicationService _medicationService = MockMedicationService();
+
   @override
   void initState() {
     super.initState();
@@ -36,19 +35,19 @@ class _MedicationListScreenState extends State<MedicationListScreen> {
       setState(() {});
     });
   }
-  
+
   void _viewMedicationDetails(String medicationId) {
     HapticFeedback.selectionClick();
     // Navigate to details screen
   }
-  
+
   void _deleteMedication(String medicationId) async {
     try {
       await _medicationService.deleteMedication(medicationId);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal menghapus obat')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Gagal menghapus obat')));
     }
   }
 
@@ -60,11 +59,7 @@ class _MedicationListScreenState extends State<MedicationListScreen> {
         height: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              Color(0xFF05606B),
-              Color(0xFF88C1D0),
-              Colors.white,
-            ],
+            colors: [Color(0xFF05606B), Color(0xFF88C1D0), Colors.white],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             stops: [0.0, 0.3, 0.7],
@@ -78,9 +73,8 @@ class _MedicationListScreenState extends State<MedicationListScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Header UI code...
-                
                 const SizedBox(height: 40),
-                
+
                 // Medications list heading
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -93,37 +87,34 @@ class _MedicationListScreenState extends State<MedicationListScreen> {
                     ),
                   ),
                 ).animate(delay: 400.ms).fadeIn(duration: 400.ms),
-                
+
                 const SizedBox(height: 16),
-                
-                // Medications list from Firebase
+
+                // Medications list from local storage
                 Expanded(
-                  child: StreamBuilder<QuerySnapshot>(
+                  child: StreamBuilder<List<Map<String, dynamic>>>(
                     stream: _medicationService.getMedications(),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
                         return const Center(child: CircularProgressIndicator());
                       }
-                      
+
                       if (snapshot.hasError) {
-                        return Center(
-                          child: Text('Error: ${snapshot.error}'),
-                        );
+                        return Center(child: Text('Error: ${snapshot.error}'));
                       }
-                      
-                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+
+                      if (!snapshot.hasData || snapshot.data!.isEmpty) {
                         return _buildEmptyState();
                       }
-                      
+
                       return ListView.builder(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: snapshot.data!.docs.length,
+                        itemCount: snapshot.data!.length,
                         itemBuilder: (context, index) {
-                          final doc = snapshot.data!.docs[index];
-                          final data = doc.data() as Map<String, dynamic>;
-                          
+                          final data = snapshot.data![index];
+
                           return _buildMedicationCard(
-                            id: doc.id,
+                            id: data['id'] ?? '',
                             name: data['name'] ?? '',
                             schedule: data['frequency'] ?? '',
                             time: data['time'] ?? '',
@@ -137,7 +128,7 @@ class _MedicationListScreenState extends State<MedicationListScreen> {
                     },
                   ),
                 ),
-                
+
                 // Add new medication button
                 Padding(
                   padding: const EdgeInsets.all(24),
@@ -187,20 +178,23 @@ class _MedicationListScreenState extends State<MedicationListScreen> {
         confirmDismiss: (direction) async {
           return await showDialog(
             context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('Hapus Pengingat?'),
-              content: const Text('Anda yakin ingin menghapus pengingat obat ini?'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Batal'),
+            builder:
+                (context) => AlertDialog(
+                  title: const Text('Hapus Pengingat?'),
+                  content: const Text(
+                    'Anda yakin ingin menghapus pengingat obat ini?',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      child: const Text('Batal'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(true),
+                      child: const Text('Hapus'),
+                    ),
+                  ],
                 ),
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(true),
-                  child: const Text('Hapus'),
-                ),
-              ],
-            ),
           );
         },
         onDismissed: (direction) => _deleteMedication(id),
@@ -245,9 +239,9 @@ class _MedicationListScreenState extends State<MedicationListScreen> {
                       ),
                     ],
                   ),
-                  
+
                   const SizedBox(height: 12),
-                  
+
                   // Schedule info
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -259,7 +253,7 @@ class _MedicationListScreenState extends State<MedicationListScreen> {
                           color: isActive ? Colors.black87 : Colors.grey,
                         ),
                       ),
-                      
+
                       // Remaining pills
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -267,9 +261,10 @@ class _MedicationListScreenState extends State<MedicationListScreen> {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: isActive 
-                              ? Colors.grey.shade200 
-                              : Colors.grey.shade100,
+                          color:
+                              isActive
+                                  ? Colors.grey.shade200
+                                  : Colors.grey.shade100,
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Text(
@@ -277,9 +272,10 @@ class _MedicationListScreenState extends State<MedicationListScreen> {
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
-                            color: isActive 
-                                ? Colors.grey.shade700 
-                                : Colors.grey.shade400,
+                            color:
+                                isActive
+                                    ? Colors.grey.shade700
+                                    : Colors.grey.shade400,
                           ),
                         ),
                       ),
@@ -317,10 +313,7 @@ class _MedicationListScreenState extends State<MedicationListScreen> {
           Text(
             'Tekan tombol tambah untuk membuat pengingat obat baru.',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey.shade500,
-            ),
+            style: TextStyle(fontSize: 16, color: Colors.grey.shade500),
           ),
         ],
       ),

@@ -83,11 +83,12 @@ class _WeightInputScreenState extends State<WeightInputScreen>
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => HeightInputScreen(
-            selectedGender: widget.selectedGender,
-            selectedAge: widget.selectedAge,
-            selectedWeight: selectedWeight,
-          ),
+          builder:
+              (context) => HeightInputScreen(
+                selectedGender: widget.selectedGender,
+                selectedAge: widget.selectedAge,
+                selectedWeight: selectedWeight,
+              ),
         ),
       );
     });
@@ -322,26 +323,26 @@ class _WeightInputScreenState extends State<WeightInputScreen>
                 ),
               ),
 
-                            // Next button with elegant entrance animation
+              // Next button with elegant entrance animation
               Padding(
                 padding: const EdgeInsets.only(bottom: 40, left: 24, right: 24),
                 child: RoundedButton(
-                  text: 'Selanjutnya',
-                  onPressed: _onNext,
-                  color: AppColors.textHighlight,
-                  textColor: Colors.black,
-                  width: 300,
-                  height: 50,
-                  elevation: 3, // Add some nice elevation for depth
-                )
-                .animate(delay: 1000.ms)
-                .fadeIn(duration: 600.ms, curve: Curves.easeOut)
-                .slideY(
-                  begin: 0.3,
-                  end: 0,
-                  duration: 600.ms,
-                  curve: Curves.easeOutQuad,
-                ),
+                      text: 'Selanjutnya',
+                      onPressed: _onNext,
+                      color: AppColors.textHighlight,
+                      textColor: Colors.black,
+                      width: 300,
+                      height: 50,
+                      elevation: 3, // Add some nice elevation for depth
+                    )
+                    .animate(delay: 1000.ms)
+                    .fadeIn(duration: 600.ms, curve: Curves.easeOut)
+                    .slideY(
+                      begin: 0.3,
+                      end: 0,
+                      duration: 600.ms,
+                      curve: Curves.easeOutQuad,
+                    ),
               ),
             ],
           ),

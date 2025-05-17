@@ -27,7 +27,7 @@ class UserModel {
     this.updatedAt,
   });
 
-  // Create a UserModel from a Map (from Firestore)
+  // Create a UserModel from a Map (from local storage)
   factory UserModel.fromMap(Map<String, dynamic> map, String id) {
     return UserModel(
       id: id,
@@ -40,14 +40,21 @@ class UserModel {
       height: map['height'] ?? 0,
       weight: map['weight'] ?? 0,
       profileImageUrl: map['profileImageUrl'],
-      createdAt: map['createdAt']?.toDate(),
-      updatedAt: map['updatedAt']?.toDate(),
+      createdAt:
+          map['createdAt'] != null
+              ? DateTime.fromMillisecondsSinceEpoch(map['createdAt'])
+              : null,
+      updatedAt:
+          map['updatedAt'] != null
+              ? DateTime.fromMillisecondsSinceEpoch(map['updatedAt'])
+              : null,
     );
   }
 
-  // Convert UserModel to a Map (for Firestore)
+  // Convert UserModel to a Map (for local storage)
   Map<String, dynamic> toMap() {
     return {
+      'id': id,
       'fullName': fullName,
       'nickname': nickname,
       'email': email,
@@ -57,7 +64,8 @@ class UserModel {
       'height': height,
       'weight': weight,
       'profileImageUrl': profileImageUrl,
-      'updatedAt': DateTime.now(),
+      'createdAt': createdAt?.millisecondsSinceEpoch,
+      'updatedAt': updatedAt?.millisecondsSinceEpoch,
     };
   }
 

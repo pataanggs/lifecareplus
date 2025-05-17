@@ -1,8 +1,8 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../services/auth_service.dart';
+import '../../services/mock_auth_service.dart';
 import '../../utils/colors.dart';
 import '../../utils/show_snackbar.dart';
 import '../../widgets/rounded_input.dart';
@@ -71,7 +71,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-
     try {
       final result = await _authService.createUserWithEmailAndPassword(
         email: email,
@@ -98,33 +97,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
           MaterialPageRoute(builder: (_) => const GenderSelectionScreen()),
         );
       }
-    } on FirebaseAuthException catch (e) {
-      String errorMessage;
+    } catch (e) {
+      String errorMessage = 'Gagal membuat akun. Silakan coba lagi';
 
-      switch (e.code) {
-        case 'email-already-in-use':
-          errorMessage = 'Email sudah terdaftar';
-          break;
-        case 'invalid-email':
-          errorMessage = 'Format email tidak valid';
-          break;
-        case 'weak-password':
-          errorMessage = 'Password terlalu lemah';
-          break;
-        default:
-          errorMessage = 'Gagal membuat akun. Silakan coba lagi';
+      // Check for common errors in our mock implementation
+      if (e.toString().contains('already in use')) {
+        errorMessage = 'Email sudah terdaftar';
+      } else if (e.toString().contains('invalid email')) {
+        errorMessage = 'Format email tidak valid';
+      } else if (e.toString().contains('weak password')) {
+        errorMessage = 'Password terlalu lemah';
       }
 
       if (mounted) {
         showSnackBar(context, errorMessage);
       }
-    } catch (e) {
-      if (mounted) {
-        showSnackBar(context, 'Terjadi kesalahan sistem');
-      }
     } finally {
-      if (mounted) {
-      }
+      if (mounted) {}
     }
   }
 

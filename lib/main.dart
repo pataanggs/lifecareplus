@@ -1,27 +1,63 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'services/firebase_service.dart';
 import 'providers/user_provider.dart';
 import 'providers/medicine_provider.dart';
 import 'screens/splash_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/auth/login_screen.dart';
+import 'screens/auth/register_screen.dart';
 import 'screens/onboarding/gender_selection_screen.dart';
 import 'dart:developer' as developer;
+import 'services/mock_data_initializer.dart';
+import 'services/auth_service.dart';
+
+// Create a route observer to track navigation
+class RouteObserver extends NavigatorObserver {
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    developer.log(
+      'Route PUSHED: ${route.settings.name} (from: ${previousRoute?.settings.name})',
+    );
+    super.didPush(route, previousRoute);
+  }
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    developer.log(
+      'Route REPLACED: ${newRoute?.settings.name} (old: ${oldRoute?.settings.name})',
+    );
+    super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
+  }
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    developer.log(
+      'Route POPPED: ${route.settings.name} (to: ${previousRoute?.settings.name})',
+    );
+    super.didPop(route, previousRoute);
+  }
+}
 
 void main() async {
   try {
     // Ensure Flutter bindings are initialized
     WidgetsFlutterBinding.ensureInitialized();
 
-    // Initialize Firebase with proper error handling
-    developer.log('Initializing Firebase...');
-    await FirebaseService.initializeFirebase();
-    developer.log('Firebase initialization successful');
+    // Initialize mock data
+    developer.log('Initializing mock data');
+    final mockDataInitializer = MockDataInitializer();
+    await mockDataInitializer.initializeMockData();
+
+    // Initialize auth service to check if user is already logged in
+    developer.log('Initializing auth service');
+    final authService = AuthService();
+    await authService.ensureInitialized();
+
+    final currentUser = authService.currentUser;
+    developer.log('Current user at startup: ${currentUser?.uid ?? 'none'}');
 
     // Run the app with providers
-    developer.log('Starting LifeCare+ app');
+    developer.log('Starting LifeCare+ app with mock backend');
     runApp(
       MultiProvider(
         providers: [
@@ -87,8 +123,9 @@ class LifeCareApp extends StatelessWidget {
     medicineProvider.listenToMedicines();
 
     return MaterialApp(
-      title: 'LifeCare+',
+      title: 'LifeCare+ (Mock)',
       debugShowCheckedModeBanner: false,
+      navigatorObservers: [RouteObserver()],
       theme: ThemeData(
         fontFamily: 'Arial',
         useMaterial3: true,
@@ -102,6 +139,7 @@ class LifeCareApp extends StatelessWidget {
       routes: {
         '/': (context) => const SplashScreen(),
         '/login': (context) => const LoginScreen(),
+        '/register': (context) => const RegisterScreen(),
         '/home': (context) => const HomeScreen(),
         '/onboarding': (context) => const GenderSelectionScreen(),
       },

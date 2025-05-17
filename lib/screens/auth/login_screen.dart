@@ -1,12 +1,16 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../services/auth_service.dart';
+import '../../services/mock_auth_service.dart';
 import '../../utils/colors.dart';
 import '../home_screen.dart';
 import '../../utils/show_snackbar.dart';
 import 'dart:developer' as developer;
+import '../../widgets/rounded_input.dart';
+import '../../widgets/rounded_button.dart';
+import 'register_screen.dart';
+import '../../services/local_storage_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -17,7 +21,10 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final AuthService _authService = AuthService();
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
   bool _isLoading = false;
+  bool _isNavigating = false; // Flag to prevent multiple navigation attempts
 
   // Controls when we show the main content
   bool _showContent = false;
@@ -29,105 +36,127 @@ class _LoginScreenState extends State<LoginScreen> {
     Future.delayed(const Duration(milliseconds: 100), () {
       if (mounted) setState(() => _showContent = true);
     });
+
+    // Initialize auth service and check current user
+    _initializeAuth();
   }
 
-  void _signInWithGoogle() async {
+  Future<void> _initializeAuth() async {
+    try {
+      // Ensure auth service is initialized first
+      await _authService.ensureInitialized();
+      // Then check if user is logged in
+      _checkCurrentUser();
+    } catch (e) {
+      developer.log("Error initializing auth: $e");
+    }
+  }
+
+  void _checkCurrentUser() async {
+    // Use proper service methods instead of accessing internal fields
+    final storageService = LocalStorageService();
+    final storedUserId = await storageService.getCurrentUserId();
+    final currentUser = _authService.currentUser;
+
+    developer.log("Login screen - stored user ID: $storedUserId");
+    developer.log("Login screen - current user: ${currentUser?.uid}");
+
+    // Check for inconsistent state
+    if (storedUserId != null && currentUser == null) {
+      developer.log("Inconsistent state: ID in storage but no current user");
+      // Force sign out to clear inconsistent state
+      await _authService.signOut();
+      return;
+    }
+
+    if ((storedUserId != null && currentUser != null) &&
+        mounted &&
+        !_isNavigating) {
+      // User is already logged in, navigate to home
+      _isNavigating = true; // Set flag to prevent multiple navigations
+      developer.log("User already logged in, redirecting to home");
+      Future.microtask(() {
+        Navigator.pushReplacementNamed(context, '/home');
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
+  void _signIn() async {
+    // Prevent multiple sign-in attempts
+    if (_isLoading || _isNavigating) {
+      return;
+    }
+
+    // Validate inputs
+    final email = emailController.text.trim();
+    final password = passwordController.text;
+
+    if (email.isEmpty || password.isEmpty) {
+      showSnackBar(context, 'Email dan password harus diisi');
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
-      developer.log("Starting Google sign-in process");
+      developer.log("Starting email/password sign-in process");
 
-      // First ensure we're signed out from any previous sessions
-      try {
-        await _authService.signOut();
-        developer.log("Successfully signed out from previous sessions");
-      } catch (e) {
-        developer.log("Error during sign-out: $e");
-        // Continue anyway
-      }
+      // Try to sign in
+      final MockUserCredential userCredential = await _authService
+          .signInWithEmailAndPassword(email: email, password: password);
 
-      final UserCredential? userCredential =
-          await _authService.signInWithGoogle();
+      developer.log("Successfully signed in with email/password");
+      developer.log("User ID: ${userCredential.user?.uid}");
 
-      if (userCredential == null) {
-        // User canceled the sign-in flow
-        developer.log("Google sign-in was cancelled by user");
-        if (mounted) {
-          showSnackBar(context, 'Sign-in dibatalkan');
-        }
-        return;
-      }
+      // Set navigation flag to prevent loops
+      _isNavigating = true;
 
-      developer.log("Successfully got userCredential from Google sign-in");
-
-      // Check if user data is complete
-      final User user = userCredential.user!;
-      developer.log("User ID: ${user.uid}");
-      developer.log("User email: ${user.email}");
-      developer.log("Fetching user profile from Firestore");
-
-      final userProfile = await _authService.getUserProfile(user.uid);
-      developer.log("User profile retrieved: ${userProfile != null}");
-
+      // Simply navigate to home screen after successful login
+      // We'll check profile completeness there to avoid login loops
       if (mounted) {
-        // If user profile exists but gender/age/height/weight are not set
-        // we should send them to onboarding to complete their profile
-        if (userProfile == null ||
-            userProfile.gender.isEmpty ||
-            userProfile.age == 0 ||
-            userProfile.height == 0 ||
-            userProfile.weight == 0) {
-          developer.log("User needs to complete onboarding");
-          // Navigate to onboarding
-          Navigator.pushReplacementNamed(context, '/onboarding');
-        } else {
-          developer.log("User profile is complete, navigating to home");
-          // Navigate to home screen
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const HomeScreen()),
-          );
-        }
-      }
-    } on FirebaseAuthException catch (e) {
-      String errorMessage = 'Gagal masuk dengan Google';
-      developer.log("FirebaseAuthException during Google sign-in: ${e.code}");
-
-      switch (e.code) {
-        case 'account-exists-with-different-credential':
-          errorMessage =
-              'Akun sudah terdaftar dengan metode login yang berbeda';
-          break;
-        case 'invalid-credential':
-          errorMessage = 'Kredensial tidak valid';
-          break;
-        case 'operation-not-allowed':
-          errorMessage = 'Login dengan Google tidak diizinkan';
-          break;
-        case 'user-disabled':
-          errorMessage = 'Akun anda telah dinonaktifkan';
-          break;
-        case 'user-not-found':
-          errorMessage = 'Akun tidak ditemukan';
-          break;
-        default:
-          errorMessage = 'Gagal masuk dengan Google: ${e.message}';
-      }
-
-      if (mounted) {
-        showSnackBar(context, errorMessage);
+        developer.log("Navigating to home after successful login");
+        // Use named routes for consistency and remove all previous routes
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/home',
+          (route) => false, // Remove all previous routes
+        );
       }
     } catch (e) {
-      developer.log("General exception during Google sign-in: $e");
-      print('Detailed Google Sign-In error: $e');
+      developer.log(
+        "Error during sign-in: $e",
+        error: e,
+        stackTrace: StackTrace.current,
+      );
       if (mounted) {
-        showSnackBar(context, 'Terjadi kesalahan saat masuk dengan Google');
+        String errorMessage = 'Terjadi kesalahan saat masuk';
+
+        if (e.toString().contains('No user found')) {
+          errorMessage = 'Email tidak terdaftar';
+        } else if (e.toString().contains('password is invalid')) {
+          errorMessage = 'Password salah';
+        }
+
+        showSnackBar(context, errorMessage);
       }
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  void _navigateToRegister() {
+    HapticFeedback.selectionClick();
+    // Use pushReplacementNamed to avoid navigation stacking
+    Navigator.pushReplacementNamed(context, '/register');
   }
 
   @override
@@ -218,80 +247,120 @@ class _LoginScreenState extends State<LoginScreen> {
                       curve: Curves.easeOutBack,
                     ),
 
-                const SizedBox(height: 80),
+                const SizedBox(height: 60),
 
-                // Description text
-                const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 20),
-                      child: Text(
-                        'Masuk dengan Google untuk melanjutkan dan menikmati layanan LifeCare+',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.white70, fontSize: 16),
-                      ),
-                    )
-                    .animate(delay: 400.ms)
-                    .fadeIn(duration: 400.ms, curve: Curves.easeOut),
-
-                const SizedBox(height: 48),
-
-                // Google Sign In button
-                Container(
-                  margin: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 16,
-                  ),
-                  child: Animate(
-                    effects: [
-                      FadeEffect(duration: 400.ms),
-                      ScaleEffect(
-                        begin: const Offset(0.95, 0.95),
-                        end: const Offset(1, 1),
-                        duration: 400.ms,
-                        curve: Curves.easeOut,
-                      ),
-                    ],
-                    delay: 500.ms,
-                    child:
-                        _isLoading
-                            ? const Center(
-                              child: CircularProgressIndicator(
-                                color: AppColors.textHighlight,
-                              ),
-                            )
-                            : ElevatedButton(
-                              onPressed: _isLoading ? null : _signInWithGoogle,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.white,
-                                foregroundColor: Colors.black87,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 16,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                elevation: 3,
-                              ),
-                              child: const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.g_mobiledata_rounded,
-                                    color: Colors.red,
-                                    size: 28,
-                                  ),
-                                  SizedBox(width: 12),
-                                  Text(
-                                    'Masuk dengan Google',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                // Email input
+                Animate(
+                  effects: [
+                    SlideEffect(
+                      begin: const Offset(0, 0.2),
+                      end: const Offset(0, 0),
+                      duration: 400.ms,
+                      curve: Curves.easeOutQuad,
+                    ),
+                    FadeEffect(
+                      begin: 0,
+                      end: 1,
+                      duration: 400.ms,
+                      curve: Curves.easeOut,
+                    ),
+                  ],
+                  delay: 400.ms,
+                  child: RoundedInput(
+                    label: 'Email',
+                    hint: 'Masukkan email anda',
+                    controller: emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    prefixIcon: const Icon(Icons.email_outlined),
                   ),
                 ),
+
+                const SizedBox(height: 16),
+
+                // Password input
+                Animate(
+                  effects: [
+                    SlideEffect(
+                      begin: const Offset(0, 0.2),
+                      end: const Offset(0, 0),
+                      duration: 400.ms,
+                      curve: Curves.easeOutQuad,
+                    ),
+                    FadeEffect(
+                      begin: 0,
+                      end: 1,
+                      duration: 400.ms,
+                      curve: Curves.easeOut,
+                    ),
+                  ],
+                  delay: 500.ms,
+                  child: RoundedInput(
+                    label: 'Password',
+                    hint: 'Masukkan password anda',
+                    controller: passwordController,
+                    isPassword: true,
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => _signIn(),
+                  ),
+                ),
+
+                const SizedBox(height: 40),
+
+                // Login button
+                Animate(
+                  effects: [
+                    FadeEffect(duration: 400.ms),
+                    ScaleEffect(
+                      begin: const Offset(0.95, 0.95),
+                      end: const Offset(1, 1),
+                      duration: 400.ms,
+                      curve: Curves.easeOut,
+                    ),
+                  ],
+                  delay: 600.ms,
+                  child:
+                      _isLoading
+                          ? const Center(
+                            child: CircularProgressIndicator(
+                              color: AppColors.textHighlight,
+                            ),
+                          )
+                          : RoundedButton(
+                            text: 'Masuk',
+                            onPressed: _signIn,
+                            color: AppColors.textHighlight,
+                            textColor: Colors.black,
+                            width: double.infinity,
+                            height: 50,
+                          ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Register link
+                Center(
+                      child: GestureDetector(
+                        onTap: _navigateToRegister,
+                        child: const Text.rich(
+                          TextSpan(
+                            text: 'Belum punya akun? ',
+                            style: TextStyle(color: Colors.white),
+                            children: [
+                              TextSpan(
+                                text: 'Daftar',
+                                style: TextStyle(
+                                  color: AppColors.textHighlight,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    )
+                    .animate(delay: 700.ms)
+                    .fadeIn(duration: 400.ms, curve: Curves.easeOut),
 
                 const SizedBox(height: 40),
 
@@ -304,7 +373,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         style: TextStyle(color: Colors.white54, fontSize: 12),
                       ),
                     )
-                    .animate(delay: 600.ms)
+                    .animate(delay: 800.ms)
                     .fadeIn(duration: 400.ms, curve: Curves.easeOut),
               ],
             ),
