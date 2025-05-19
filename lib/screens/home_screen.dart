@@ -5,9 +5,29 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cached_network_image/cached_network_image.dart'; // Add this import
+import '/services/article_service.dart'; // Add this import
+import 'package:url_launcher/url_launcher.dart';
+import 'article_webview_screen.dart';
 
 import 'medication_reminder_screen.dart';
 import '/cubits/home/home_cubit.dart';
+
+class Article {
+  final String title;
+  final String imageUrl;
+  final String category;
+  final String timeToRead;
+  final String url;
+
+  Article({
+    required this.title,
+    required this.imageUrl,
+    required this.category,
+    required this.timeToRead,
+    required this.url,
+  });
+}
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -21,11 +41,14 @@ class _HomeScreenState extends State<HomeScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   bool _showContent = false;
   bool _isInitialized = false;
+  List<Article> _articles = [];
+  bool _isLoadingArticles = true;
 
   @override
   void initState() {
     super.initState();
     _initializeScreen();
+    _loadArticles();
   }
 
   Future<void> _initializeScreen() async {
@@ -63,6 +86,52 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (mounted) {
         Navigator.pushReplacementNamed(context, '/login');
+      }
+    }
+  }
+
+  Future<void> _loadArticles() async {
+    try {
+      final serviceArticles = await ArticleService.fetchHealthArticles();
+      if (mounted) {
+        setState(() {
+          // Map the service articles to the local Article type
+          _articles =
+              serviceArticles
+                  .map(
+                    (article) => Article(
+                      title: article.title,
+                      imageUrl: article.imageUrl,
+                      category: article.category,
+                      timeToRead: article.timeToRead,
+                      url: article.url,
+                    ),
+                  )
+                  .toList();
+          _isLoadingArticles = false;
+        });
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print("Error loading articles: $e");
+      }
+      if (mounted) {
+        setState(() {
+          // Map fallback articles to local Article type
+          _articles =
+              ArticleService.getFallbackArticles()
+                  .map(
+                    (article) => Article(
+                      title: article.title,
+                      imageUrl: article.imageUrl,
+                      category: article.category,
+                      timeToRead: article.timeToRead,
+                      url: article.url,
+                    ),
+                  )
+                  .toList();
+          _isLoadingArticles = false;
+        });
       }
     }
   }
@@ -423,52 +492,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                               ),
 
+                              // Replace this line:
                               // Articles section with icon placeholders
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Padding(
-                                      padding: EdgeInsets.symmetric(
-                                        vertical: 8.0,
-                                      ),
-                                      child: Text(
-                                        'Artikel Kesehatan',
-                                        style: TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    // Using icons instead of images
-                                    _buildArticleCardWithIcon(
-                                      title: 'Tips Menjaga Kesehatan Jantung',
-                                      icon: Icons.favorite,
-                                      iconBackground: Colors.red.shade100,
-                                      iconColor: Colors.red.shade800,
-                                      category: 'Kesehatan Jantung',
-                                      delay: 900,
-                                      size: size,
-                                    ),
-                                    const SizedBox(height: 16),
-                                    _buildArticleCardWithIcon(
-                                      title:
-                                          'Makanan untuk Meningkatkan Imunitas',
-                                      icon: Icons.restaurant,
-                                      iconBackground: Colors.green.shade100,
-                                      iconColor: Colors.green.shade800,
-                                      category: 'Nutrisi',
-                                      delay: 1000,
-                                      size: size,
-                                    ),
-                                    const SizedBox(height: 24),
-                                  ],
-                                ),
-                              ),
+                              _buildArticlesSection(size),
                             ],
                           ),
                         )
@@ -554,17 +580,65 @@ class _HomeScreenState extends State<HomeScreen> {
         .slideY(begin: 0.2, end: 0, duration: 400.ms, curve: Curves.easeOut);
   }
 
-  Widget _buildArticleCardWithIcon({
+  Widget _buildArticlesSection(Size size) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8.0),
+            child: Text(
+              'Artikel Kesehatan',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          _isLoadingArticles
+              ? const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(20.0),
+                  child: CircularProgressIndicator(),
+                ),
+              )
+              : Column(
+                children:
+                    _articles.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final article = entry.value;
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16.0),
+                        child: _buildArticleCard(
+                          title: article.title,
+                          imageUrl: article.imageUrl,
+                          category: article.category,
+                          timeToRead: article.timeToRead,
+                          url: article.url,
+                          delay: 900 + (index * 100),
+                          size: size,
+                        ),
+                      );
+                    }).toList(),
+              ),
+
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildArticleCard({
     required String title,
-    required IconData icon,
-    required Color iconBackground,
-    required Color iconColor,
+    required String imageUrl,
     required String category,
+    required String timeToRead,
+    required String url,
     required int delay,
     required Size size,
   }) {
     return InkWell(
-      onTap: () => _onFeatureButtonTap('Article: $title'),
+      onTap: () => _onArticleTap(title, url),
       borderRadius: BorderRadius.circular(12),
       child: Container(
         width: size.width,
@@ -584,18 +658,52 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Expanded(
               flex: 1,
-              child: Container(
-                width: size.width,
-                height: size.height,
-                decoration: BoxDecoration(
-                  color: iconBackground,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(12),
-                    bottomLeft: Radius.circular(12),
-                  ),
-                ),
-                child: Icon(icon, color: iconColor, size: 40),
-              ),
+              child:
+                  imageUrl.isNotEmpty
+                      ? ClipRRect(
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(12),
+                          bottomLeft: Radius.circular(12),
+                        ),
+                        child: CachedNetworkImage(
+                          imageUrl: imageUrl,
+                          fit: BoxFit.cover,
+                          height: double.infinity,
+                          placeholder:
+                              (context, url) => Container(
+                                color: Colors.grey[200],
+                                child: const Icon(
+                                  Icons.image,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                          errorWidget:
+                              (context, url, error) => Container(
+                                color: Colors.grey[200],
+                                child: Icon(
+                                  _getCategoryIcon(category),
+                                  color: _getCategoryColor(category),
+                                  size: 40,
+                                ),
+                              ),
+                        ),
+                      )
+                      : Container(
+                        width: size.width,
+                        height: size.height,
+                        decoration: BoxDecoration(
+                          color: _getCategoryBackground(category),
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(12),
+                            bottomLeft: Radius.circular(12),
+                          ),
+                        ),
+                        child: Icon(
+                          _getCategoryIcon(category),
+                          color: _getCategoryColor(category),
+                          size: 40,
+                        ),
+                      ),
             ),
             Expanded(
               flex: 3,
@@ -632,7 +740,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 4),
+                    const Spacer(),
                     Row(
                       children: [
                         const Icon(
@@ -642,7 +750,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          '5 menit membaca',
+                          timeToRead,
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey.shade600,
@@ -658,5 +766,100 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     ).animate(delay: delay.ms).fadeIn(duration: 400.ms, curve: Curves.easeOut);
+  }
+
+  void _onArticleTap(String title, String url) {
+    if (url.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('URL artikel tidak tersedia')),
+      );
+      return;
+    }
+
+    if (kDebugMode) {
+      print("Opening article: $title with URL: $url");
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ArticleWebViewScreen(url: url, title: title),
+      ),
+    );
+  }
+
+  IconData _getCategoryIcon(String category) {
+    switch (category.toLowerCase()) {
+      case 'kesehatan jantung':
+        return Icons.favorite;
+      case 'nutrisi':
+      case 'diet':
+      case 'makanan':
+        return Icons.restaurant;
+      case 'fitness':
+      case 'olahraga':
+        return Icons.fitness_center;
+      case 'covid-19':
+      case 'virus':
+        return Icons.coronavirus;
+      case 'mental':
+      case 'psikologi':
+        return Icons.psychology;
+      case 'hidup sehat':
+      case 'pola hidup':
+        return Icons.healing;
+      default:
+        return Icons.health_and_safety;
+    }
+  }
+
+  Color _getCategoryColor(String category) {
+    switch (category.toLowerCase()) {
+      case 'kesehatan jantung':
+        return Colors.red.shade800;
+      case 'nutrisi':
+      case 'diet':
+      case 'makanan':
+        return Colors.green.shade800;
+      case 'fitness':
+      case 'olahraga':
+        return Colors.orange.shade800;
+      case 'covid-19':
+      case 'virus':
+        return Colors.purple.shade800;
+      case 'mental':
+      case 'psikologi':
+        return Colors.blue.shade800;
+      case 'hidup sehat':
+      case 'pola hidup':
+        return Colors.teal.shade800;
+      default:
+        return const Color(0xFF05606B);
+    }
+  }
+
+  Color _getCategoryBackground(String category) {
+    switch (category.toLowerCase()) {
+      case 'kesehatan jantung':
+        return Colors.red.shade100;
+      case 'nutrisi':
+      case 'diet':
+      case 'makanan':
+        return Colors.green.shade100;
+      case 'fitness':
+      case 'olahraga':
+        return Colors.orange.shade100;
+      case 'covid-19':
+      case 'virus':
+        return Colors.purple.shade100;
+      case 'mental':
+      case 'psikologi':
+        return Colors.blue.shade100;
+      case 'hidup sehat':
+      case 'pola hidup':
+        return Colors.teal.shade100;
+      default:
+        return Colors.grey.shade100;
+    }
   }
 }

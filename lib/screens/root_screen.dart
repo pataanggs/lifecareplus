@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'home_screen.dart';
+import 'profile_tab_screen.dart'; // Import the new file
 
 class RootScreen extends StatefulWidget {
   const RootScreen({super.key});
@@ -17,8 +18,7 @@ class _RootScreenState extends State<RootScreen> {
     const HomeScreen(),
     const Center(child: Text('Jadwal Screen')),
     const Center(child: Text('Kesehatan Screen')),
-    const Center(child: Text('Profil Screen')),
-    // const ProfileScreen(),
+    const ProfileTabScreen(), // Use the new screen
   ];
 
   void _onNavItemTapped(int index) {
@@ -31,10 +31,7 @@ class _RootScreenState extends State<RootScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _screens,
-      ),
+      body: IndexedStack(index: _selectedIndex, children: _screens),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onNavItemTapped,

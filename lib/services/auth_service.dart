@@ -1,16 +1,18 @@
 import 'dart:developer' as developer;
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user_model.dart';
 import 'local_storage_service.dart';
 
 class AuthService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final LocalStorageService _storage = LocalStorageService();
 
   // Get current user with error handling
   User? get currentUser {
     try {
-      return _auth.currentUser;
+      return _firebaseAuth.currentUser;
     } catch (e) {
       developer.log('Error getting current user: $e');
       return null;
@@ -20,7 +22,7 @@ class AuthService {
   // Stream to listen to auth state changes
   Stream<User?> get authStateChanges {
     try {
-      return _auth.authStateChanges();
+      return _firebaseAuth.authStateChanges();
     } catch (e) {
       developer.log('Error getting auth state changes: $e');
       return Stream.value(null);
@@ -42,7 +44,7 @@ class AuthService {
   // Sign out
   Future<void> signOut() async {
     try {
-      await _auth.signOut();
+      await _firebaseAuth.signOut();
       developer.log('User signed out successfully');
     } catch (e) {
       developer.log('Error signing out: $e');
@@ -113,7 +115,7 @@ class AuthService {
     required String password,
   }) async {
     try {
-      return await _auth.signInWithEmailAndPassword(
+      return await _firebaseAuth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
@@ -129,7 +131,7 @@ class AuthService {
     required String password,
   }) async {
     try {
-      return await _auth.createUserWithEmailAndPassword(
+      return await _firebaseAuth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
@@ -142,10 +144,25 @@ class AuthService {
   // Reset password
   Future<void> resetPassword(String email) async {
     try {
-      await _auth.sendPasswordResetEmail(email: email);
+      await _firebaseAuth.sendPasswordResetEmail(email: email);
     } catch (e) {
       developer.log('Error resetting password: $e');
       rethrow;
     }
+  }
+
+  Future<UserModel?> getCurrentUserProfile() async {
+    User? currentUser = _firebaseAuth.currentUser;
+    if (currentUser == null) return null;
+
+    DocumentSnapshot userDoc =
+        await _firestore.collection('users').doc(currentUser.uid).get();
+
+    if (userDoc.exists) {
+      Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>;
+      return UserModel.fromMap(data, currentUser.uid);
+    }
+
+    return null;
   }
 }
