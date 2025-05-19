@@ -1,15 +1,16 @@
-import 'dart:io';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../services/auth_service.dart';
-import '../../services/mock_storage_service.dart';
-import '../../utils/colors.dart';
-import '../../utils/show_snackbar.dart';
-import '../../widgets/rounded_button.dart';
-import '../../models/user_model.dart';
-import '../notifications_permission_screen.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'dart:io';
+
+import '/screens/notifications_permission_screen.dart';
+import '/widgets/rounded_button.dart';
+import '/services/auth_service.dart';
+import '/utils/show_snackbar.dart';
+import '/utils/colors.dart';
 
 class ProfileDataScreen extends StatefulWidget {
   final String selectedGender;
@@ -37,8 +38,6 @@ class _ProfileDataScreenState extends State<ProfileDataScreen>
   final phoneController = TextEditingController();
 
   final AuthService _authService = AuthService();
-  final MockStorageService _storageService = MockStorageService();
-
   File? _profileImage;
   bool _showContent = false;
   late AnimationController _animationController;
@@ -66,21 +65,17 @@ class _ProfileDataScreenState extends State<ProfileDataScreen>
   Future<void> _loadUserData() async {
     if (_authService.currentUser != null) {
       try {
+        final prefs = await SharedPreferences.getInstance();
         emailController.text = _authService.currentUser!.email ?? '';
 
-        final userData = await _authService.getUserProfile(
-          _authService.currentUser!.uid,
-        );
-
-        if (userData != null) {
-          setState(() {
-            fullNameController.text = userData.fullName;
-            nicknameController.text = userData.nickname;
-            phoneController.text = userData.phone;
-          });
-        }
+        // Load saved profile data
+        fullNameController.text = prefs.getString('user_full_name') ?? '';
+        nicknameController.text = prefs.getString('user_nickname') ?? '';
+        phoneController.text = prefs.getString('user_phone') ?? '';
       } catch (e) {
-        print('Error loading user data: $e');
+        if (kDebugMode) {
+          print('Error loading user data: $e');
+        }
       }
     }
   }
@@ -121,36 +116,21 @@ class _ProfileDataScreenState extends State<ProfileDataScreen>
     }
 
     try {
-      String? profileImageUrl;
+      final prefs = await SharedPreferences.getInstance();
 
-      // Upload profile image if selected
+      // Save all user data to SharedPreferences
+      await prefs.setString('user_full_name', fullNameController.text);
+      await prefs.setString('user_nickname', nicknameController.text);
+      await prefs.setString('user_email', emailController.text);
+      await prefs.setString('user_phone', phoneController.text);
+
+      // Save profile image path if selected
       if (_profileImage != null) {
-        profileImageUrl = await _storageService.uploadProfileImage(
-          _profileImage!,
-        );
+        await prefs.setString('user_profile_image', _profileImage!.path);
       }
 
-      // Update user profile
-      final userModel = UserModel(
-        id: _authService.currentUser!.uid,
-        fullName: fullNameController.text,
-        nickname: nicknameController.text,
-        email: emailController.text,
-        phone: phoneController.text,
-        gender: widget.selectedGender,
-        age: widget.selectedAge,
-        height: widget.selectedHeight,
-        weight: widget.selectedWeight,
-        profileImageUrl: profileImageUrl,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      );
-
-      // Update user profile with UserModel
-      await _authService.updateUserProfile(
-        _authService.currentUser!.uid,
-        userModel,
-      );
+      // Mark onboarding as complete
+      await prefs.setBool('onboarding_complete', true);
 
       // Navigate to notification permission screen
       if (mounted) {
@@ -165,8 +145,6 @@ class _ProfileDataScreenState extends State<ProfileDataScreen>
       if (mounted) {
         showSnackBar(context, 'Terjadi kesalahan saat menyimpan data');
       }
-    } finally {
-      if (mounted) {}
     }
   }
 
@@ -182,7 +160,6 @@ class _ProfileDataScreenState extends State<ProfileDataScreen>
             children: [
               // Top padding
               const SizedBox(height: 16),
-
               // Back button and title area
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -221,9 +198,7 @@ class _ProfileDataScreenState extends State<ProfileDataScreen>
                           duration: 500.ms,
                           curve: Curves.easeOutQuad,
                         ),
-
                     const SizedBox(height: 40),
-
                     // Title
                     const Center(
                           child: Text(
@@ -246,7 +221,6 @@ class _ProfileDataScreenState extends State<ProfileDataScreen>
                   ],
                 ),
               ),
-
               // Main content - scrollable
               Expanded(
                 child: SingleChildScrollView(
@@ -254,7 +228,6 @@ class _ProfileDataScreenState extends State<ProfileDataScreen>
                   child: Column(
                     children: [
                       const SizedBox(height: 30),
-
                       // Profile picture section
                       Center(
                             child: Stack(
@@ -285,7 +258,6 @@ class _ProfileDataScreenState extends State<ProfileDataScreen>
                                           )
                                           : null,
                                 ),
-
                                 // Edit button
                                 Positioned(
                                   right: 0,
@@ -318,9 +290,7 @@ class _ProfileDataScreenState extends State<ProfileDataScreen>
                             duration: 600.ms,
                             curve: Curves.easeOutCubic,
                           ),
-
                       const SizedBox(height: 40),
-
                       // Form fields
                       _buildInputField(
                         label: 'Nama Lengkap',
@@ -328,14 +298,12 @@ class _ProfileDataScreenState extends State<ProfileDataScreen>
                         hint: 'Masukkan nama lengkap anda',
                         delay: 600,
                       ),
-
                       _buildInputField(
                         label: 'Nama Panggilan',
                         controller: nicknameController,
                         hint: 'Masukkan nama panggilan anda',
                         delay: 700,
                       ),
-
                       _buildInputField(
                         label: 'Email',
                         controller: emailController,
@@ -343,7 +311,6 @@ class _ProfileDataScreenState extends State<ProfileDataScreen>
                         keyboardType: TextInputType.emailAddress,
                         delay: 800,
                       ),
-
                       _buildInputField(
                         label: 'Nomor Handphone',
                         controller: phoneController,
@@ -351,13 +318,11 @@ class _ProfileDataScreenState extends State<ProfileDataScreen>
                         keyboardType: TextInputType.phone,
                         delay: 900,
                       ),
-
                       const SizedBox(height: 40),
                     ],
                   ),
                 ),
               ),
-
               // Next button
               Padding(
                 padding: const EdgeInsets.only(bottom: 40, left: 24, right: 24),

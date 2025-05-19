@@ -5,6 +5,7 @@ import 'package:lifecareplus/utils/colors.dart';
 import 'package:lifecareplus/widgets/rounded_button.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:lifecareplus/utils/onboarding_preferences.dart';
 
 class HeightInputScreen extends StatefulWidget {
   final String selectedGender;
@@ -88,8 +89,9 @@ class _HeightInputScreenState extends State<HeightInputScreen>
     }
   }
 
-  void _onNext() {
+  void _onNext() async {
     HapticFeedback.mediumImpact();
+    await OnboardingPreferences.saveHeight(selectedHeight);
     print(
       '[LOG] Gender: ${widget.selectedGender}, Age: ${widget.selectedAge}, Height: $selectedHeight, Weight: ${widget.selectedWeight}',
     );
@@ -109,7 +111,7 @@ class _HeightInputScreenState extends State<HeightInputScreen>
     });
   }
 
-  void _updateHeight(int height) {
+  void _updateHeight(int height) async {
     if (height != selectedHeight &&
         height >= minHeight &&
         height <= maxHeight) {
@@ -117,6 +119,7 @@ class _HeightInputScreenState extends State<HeightInputScreen>
       setState(() {
         selectedHeight = height;
       });
+      await OnboardingPreferences.saveHeight(height);
     }
   }
 

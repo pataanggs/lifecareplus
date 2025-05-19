@@ -1,9 +1,12 @@
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-import '../utils/colors.dart';
-import '../widgets/rounded_button.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '/cubits/medication-schedule/medication_schedule_cubit.dart';
+import '/widgets/rounded_button.dart';
 import 'medication_stock_screen.dart';
+import '/utils/colors.dart';
 
 class MedicationScheduleScreen extends StatefulWidget {
   final String medicationName;
@@ -21,9 +24,11 @@ class MedicationScheduleScreen extends StatefulWidget {
 }
 
 class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
+  String _selectedDosage = '1 tablet';
+  String _selectedTime = '08.00';
   bool _showContent = false;
-  String _selectedTime = '08.00'; // Default time
-  String _selectedDosage = '1 tablet'; // Default dosage
+
+  MedicationScheduleCubit? _medicationScheduleCubit;
 
   final List<String> _dosageOptions = [
     '1 tablet',
@@ -39,22 +44,328 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
     Future.delayed(const Duration(milliseconds: 100), () {
       if (mounted) setState(() => _showContent = true);
     });
+
+    _medicationScheduleCubit = MedicationScheduleCubit();
+    _medicationScheduleCubit?.initialize();
+  }
+
+  @override
+  void dispose() {
+    _medicationScheduleCubit?.close();
+    super.dispose();
   }
 
   void _proceed() {
     HapticFeedback.mediumImpact();
-
-    // Navigate directly to the stock management screen instead of summary screen
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder:
-            (context) => MedicationStockScreen(
-              medicationName: widget.medicationName,
-              frequency: widget.frequency,
-              time: _selectedTime,
-              dosage: _selectedDosage,
-            ),
+        builder: (context) {
+          return MedicationStockScreen(
+            medicationName: widget.medicationName,
+            frequency: widget.frequency,
+            time: _selectedTime,
+            dosage: _selectedDosage,
+          );
+        },
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_medicationScheduleCubit == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return BlocProvider.value(
+      value: _medicationScheduleCubit!,
+      child: Scaffold(
+        resizeToAvoidBottomInset: true,
+        body: BlocBuilder<MedicationScheduleCubit, MedicationScheduleState>(
+          builder: (context, state) {
+            return Container(
+              width: double.infinity,
+              height: double.infinity,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Color(0xFF05606B),
+                    Color(0xFF88C1D0),
+                    Color(0xFFB5D8E2),
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  stops: [0.0, 0.5, 1.0],
+                ),
+              ),
+              child: AnimatedOpacity(
+                opacity: _showContent ? 1.0 : 0.0,
+                duration: const Duration(milliseconds: 300),
+                child: SafeArea(
+                  child: SingleChildScrollView(
+                    physics: const ClampingScrollPhysics(),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                        'Hi, ${state.data.nickname}',
+                                        style: TextStyle(
+                                          fontSize: 26,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white.withValues(
+                                            alpha: 0.9,
+                                          ),
+                                        ),
+                                      )
+                                      .animate(delay: 100.ms)
+                                      .fadeIn(duration: 400.ms),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                        state.data.formattedDate,
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.white.withValues(
+                                            alpha: 0.7,
+                                          ),
+                                        ),
+                                      )
+                                      .animate(delay: 200.ms)
+                                      .fadeIn(duration: 400.ms),
+                                ],
+                              ),
+                              Container(
+                                width: 48,
+                                height: 48,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: .2),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.person_outline_rounded,
+                                  color: Colors.white,
+                                  size: 28,
+                                ),
+                              ).animate(delay: 200.ms).fadeIn(duration: 400.ms),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+                          GestureDetector(
+                            onTap: () => Navigator.pop(context),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.arrow_back_ios,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Kembali',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.grey.shade200,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ).animate(delay: 300.ms).fadeIn(duration: 400.ms),
+                          const SizedBox(height: 60),
+                          Column(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                  vertical: 16,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: .9),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Text(
+                                  widget.medicationName,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF05606B),
+                                  ),
+                                ),
+                              ).animate(delay: 400.ms).fadeIn(duration: 500.ms),
+                              const SizedBox(height: 40),
+                              Text(
+                                'Kapan baiknya kami mengingatkan Anda?',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  height: 1.3,
+                                  color: Colors.white.withValues(alpha: .9),
+                                ),
+                              ).animate(delay: 500.ms).fadeIn(duration: 400.ms),
+                              const SizedBox(height: 60),
+                              Row(
+                                children: [
+                                  const Expanded(
+                                    child: Text(
+                                      'Jam',
+                                      style: TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: InkWell(
+                                      onTap: _showTimePickerSheet,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 20,
+                                          vertical: 12,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(
+                                            16,
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withValues(
+                                                alpha: .1,
+                                              ),
+                                              blurRadius: 4,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ],
+                                        ),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text(
+                                              _selectedTime,
+                                              style: const TextStyle(
+                                                fontSize: 20,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.black87,
+                                              ),
+                                            ),
+                                            const Icon(
+                                              Icons.arrow_drop_down,
+                                              color: Colors.grey,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ).animate(delay: 600.ms).fadeIn(duration: 400.ms),
+                              const SizedBox(height: 30),
+                              Row(
+                                children: [
+                                  const Expanded(
+                                    child: Text(
+                                      'Dosis',
+                                      style: TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: InkWell(
+                                      onTap: _showDosagePickerSheet,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 20,
+                                          vertical: 12,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(
+                                            16,
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withValues(
+                                                alpha: .1,
+                                              ),
+                                              blurRadius: 4,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ],
+                                        ),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text(
+                                              _selectedDosage,
+                                              style: const TextStyle(
+                                                fontSize: 20,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.black87,
+                                              ),
+                                            ),
+                                            const Icon(
+                                              Icons.arrow_drop_down,
+                                              color: Colors.grey,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ).animate(delay: 700.ms).fadeIn(duration: 400.ms),
+                              const SizedBox(height: 80),
+                              RoundedButton(
+                                    text: 'Selanjutnya',
+                                    onPressed: _proceed,
+                                    color: AppColors.textHighlight,
+                                    textColor: Colors.black,
+                                    width: 300,
+                                    height: 50,
+                                    borderRadius: 25,
+                                    elevation: 3,
+                                  )
+                                  .animate(delay: 800.ms)
+                                  .fadeIn(
+                                    duration: 600.ms,
+                                    curve: Curves.easeOut,
+                                  )
+                                  .slideY(
+                                    begin: 0.3,
+                                    end: 0,
+                                    duration: 600.ms,
+                                    curve: Curves.easeOutQuad,
+                                  ),
+                              const SizedBox(height: 40),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -65,11 +376,8 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (context) {
-        // Create a local variable to track selection within the modal
         String tempSelectedTime = _selectedTime;
-
         return StatefulBuilder(
-          // Use StatefulBuilder to rebuild the modal contents
           builder: (context, setModalState) {
             return Container(
               height: MediaQuery.of(context).size.height * 0.7,
@@ -79,7 +387,6 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
               ),
               child: Column(
                 children: [
-                  // Header with handle (unchanged)
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(vertical: 16),
@@ -91,17 +398,15 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
                     ),
                     child: Column(
                       children: [
-                        // Drag handle
                         Container(
                           width: 40,
                           height: 5,
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.5),
+                            color: Colors.white.withValues(alpha: .5),
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
                         const SizedBox(height: 16),
-                        // Title
                         const Text(
                           'Pilih Waktu',
                           style: TextStyle(
@@ -115,14 +420,12 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
                     ),
                   ),
 
-                  // Clock-like time picker
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.all(20),
                       child: SingleChildScrollView(
                         child: Column(
                           children: [
-                            // Digital Clock Display
                             Container(
                               width: double.infinity,
                               padding: const EdgeInsets.symmetric(
@@ -150,7 +453,6 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
                               ),
                             ),
 
-                            // Morning times
                             _buildTimeSelectionSection(
                               title: 'Pagi',
                               icon: Icons.wb_sunny_outlined,
@@ -163,10 +465,7 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
                                 setState(() => _selectedTime = time);
                               },
                             ),
-
                             const SizedBox(height: 24),
-
-                            // Afternoon times
                             _buildTimeSelectionSection(
                               title: 'Siang',
                               icon: Icons.wb_sunny,
@@ -178,10 +477,7 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
                                 setState(() => _selectedTime = time);
                               },
                             ),
-
                             const SizedBox(height: 24),
-
-                            // Evening times
                             _buildTimeSelectionSection(
                               title: 'Malam',
                               icon: Icons.nightlight_round,
@@ -204,8 +500,6 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
                       ),
                     ),
                   ),
-
-                  // Confirm button
                   Padding(
                     padding: const EdgeInsets.all(16),
                     child: RoundedButton(
@@ -227,7 +521,6 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
     );
   }
 
-  // New helper method with callback
   Widget _buildTimeSelectionSection({
     required String title,
     required IconData icon,
@@ -239,7 +532,6 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Section header
         Row(
           children: [
             Icon(icon, color: iconColor, size: 24),
@@ -254,10 +546,7 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
             ),
           ],
         ),
-
         const SizedBox(height: 12),
-
-        // Time options
         Wrap(
           spacing: 10,
           runSpacing: 10,
@@ -293,7 +582,7 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
                                 BoxShadow(
                                   color: const Color(
                                     0xFF05606B,
-                                  ).withOpacity(0.3),
+                                  ).withValues(alpha: .3),
                                   blurRadius: 8,
                                   offset: const Offset(0, 2),
                                 ),
@@ -323,11 +612,8 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (context) {
-        // Create a local variable to track selection within the modal
         String tempSelectedDosage = _selectedDosage;
-
         return StatefulBuilder(
-          // Use StatefulBuilder to rebuild the modal contents
           builder: (context, setModalState) {
             return Container(
               height: MediaQuery.of(context).size.height * 0.5,
@@ -354,7 +640,7 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
                           width: 40,
                           height: 5,
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.5),
+                            color: Colors.white.withValues(alpha: .5),
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
@@ -457,7 +743,7 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
                                                     BoxShadow(
                                                       color: const Color(
                                                         0xFF05606B,
-                                                      ).withOpacity(0.3),
+                                                      ).withValues(alpha: .3),
                                                       blurRadius: 8,
                                                       offset: const Offset(
                                                         0,
@@ -525,303 +811,6 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
           },
         );
       },
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      resizeToAvoidBottomInset: true,
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color(0xFF05606B), // Teal at top
-              Color(0xFF88C1D0), // Light blue in middle
-              Color(0xFFB5D8E2), // Lighter blue at bottom
-            ],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            stops: [0.0, 0.5, 1.0],
-          ),
-        ),
-        child: AnimatedOpacity(
-          opacity: _showContent ? 1.0 : 0.0,
-          duration: const Duration(milliseconds: 300),
-          child: SafeArea(
-            child: SingleChildScrollView(
-              physics: const ClampingScrollPhysics(),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 16),
-
-                    // Header with profile and greeting
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        // Greeting text
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Hi, Asavira',
-                              style: TextStyle(
-                                fontSize: 26,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white.withOpacity(0.9),
-                              ),
-                            ).animate(delay: 100.ms).fadeIn(duration: 400.ms),
-
-                            const SizedBox(height: 4),
-
-                            Text(
-                              'SABTU, DES 28',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.white.withOpacity(0.7),
-                              ),
-                            ).animate(delay: 200.ms).fadeIn(duration: 400.ms),
-                          ],
-                        ),
-
-                        // Profile icon
-                        Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.person_outline_rounded,
-                            color: Colors.white,
-                            size: 28,
-                          ),
-                        ).animate(delay: 200.ms).fadeIn(duration: 400.ms),
-                      ],
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Back button with "Kembali" text
-                    GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.arrow_back_ios,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Kembali',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.grey.shade200,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ).animate(delay: 300.ms).fadeIn(duration: 400.ms),
-
-                    const SizedBox(height: 60),
-
-                    // Main content section
-                    Column(
-                      children: [
-                        // Medication name in teal box
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 16,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.9),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Text(
-                            widget.medicationName,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF05606B),
-                            ),
-                          ),
-                        ).animate(delay: 400.ms).fadeIn(duration: 500.ms),
-
-                        const SizedBox(height: 40),
-
-                        // Reminder question text
-                        Text(
-                          'Kapan baiknya kami mengingatkan Anda?',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            height: 1.3,
-                            color: Colors.white.withOpacity(0.9),
-                          ),
-                        ).animate(delay: 500.ms).fadeIn(duration: 400.ms),
-
-                        const SizedBox(height: 60),
-
-                        // Time selection row
-                        Row(
-                          children: [
-                            const Expanded(
-                              child: Text(
-                                'Jam',
-                                style: TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-
-                            Expanded(
-                              child: InkWell(
-                                onTap: _showTimePickerSheet,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 20,
-                                    vertical: 12,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(16),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.1),
-                                        blurRadius: 4,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        _selectedTime,
-                                        style: const TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.black87,
-                                        ),
-                                      ),
-                                      const Icon(
-                                        Icons.arrow_drop_down,
-                                        color: Colors.grey,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ).animate(delay: 600.ms).fadeIn(duration: 400.ms),
-
-                        const SizedBox(height: 30),
-
-                        // Dosage selection row
-                        Row(
-                          children: [
-                            const Expanded(
-                              child: Text(
-                                'Dosis',
-                                style: TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-
-                            Expanded(
-                              child: InkWell(
-                                onTap: _showDosagePickerSheet,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 20,
-                                    vertical: 12,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(16),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.1),
-                                        blurRadius: 4,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        _selectedDosage,
-                                        style: const TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.black87,
-                                        ),
-                                      ),
-                                      const Icon(
-                                        Icons.arrow_drop_down,
-                                        color: Colors.grey,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ).animate(delay: 700.ms).fadeIn(duration: 400.ms),
-
-                        const SizedBox(height: 80),
-
-                        // Next button with consistent styling
-                        RoundedButton(
-                              text: 'Selanjutnya',
-                              onPressed: _proceed,
-                              color: AppColors.textHighlight,
-                              textColor: Colors.black,
-                              width: 300,
-                              height: 50,
-                              borderRadius: 25,
-                              elevation: 3,
-                            )
-                            .animate(delay: 800.ms)
-                            .fadeIn(duration: 600.ms, curve: Curves.easeOut)
-                            .slideY(
-                              begin: 0.3,
-                              end: 0,
-                              duration: 600.ms,
-                              curve: Curves.easeOutQuad,
-                            ),
-
-                        const SizedBox(height: 40),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

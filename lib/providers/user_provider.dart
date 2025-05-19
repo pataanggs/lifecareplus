@@ -20,11 +20,11 @@ class UserProvider with ChangeNotifier {
     } else if (_user != null && _user!.fullName.isNotEmpty) {
       return _user!.fullName.split(' ')[0];
     }
-    return 'Guest';
+    return _authService.currentUser?.displayName ?? 'Guest';
   }
 
   // Get profile image URL
-  String? get profileImageUrl => _user?.profileImageUrl;
+  String? get profileImageUrl => _user?.profileImageUrl ?? _authService.currentUser?.photoURL;
 
   // Fetch user data
   Future<void> fetchUserData() async {
@@ -62,6 +62,12 @@ class UserProvider with ChangeNotifier {
     try {
       _isLoading = true;
       notifyListeners();
+
+      // Update Firebase Auth profile if name or photo changes
+      if (fullName != null || profileImageUrl != null) {
+        await _authService.currentUser?.updateDisplayName(fullName);
+        await _authService.currentUser?.updatePhotoURL(profileImageUrl);
+      }
 
       // Create updated user model
       final updatedUser = UserModel(

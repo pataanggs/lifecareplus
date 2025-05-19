@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../utils/colors.dart';
 import '../../widgets/rounded_button.dart';
 import 'age_selection_screen.dart'; // Add this import
+import '../../utils/onboarding_preferences.dart';
 
 class GenderSelectionScreen extends StatefulWidget {
   const GenderSelectionScreen({super.key});
@@ -13,10 +14,11 @@ class GenderSelectionScreen extends StatefulWidget {
 class _GenderSelectionScreenState extends State<GenderSelectionScreen> {
   String? selectedGender;
 
-  void _selectGender(String gender) {
+  void _selectGender(String gender) async {
     setState(() {
       selectedGender = gender;
     });
+    await OnboardingPreferences.saveGender(gender);
   }
 
   void _onNext() {

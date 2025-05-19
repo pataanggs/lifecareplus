@@ -1,13 +1,13 @@
-import 'dart:io';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
-import '../models/user_model.dart';
-import '../services/auth_service.dart';
-import '../services/mock_storage_service.dart';
-import '../utils/colors.dart';
-import '../utils/show_snackbar.dart';
-import '../widgets/rounded_button.dart';
+import 'package:flutter/material.dart';
+import 'dart:io';
+
+import '/widgets/rounded_button.dart';
+import '/services/auth_service.dart';
+import '/utils/show_snackbar.dart';
+import '/models/user_model.dart';
+import '/utils/colors.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -25,7 +25,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final weightController = TextEditingController();
 
   final AuthService _authService = AuthService();
-  final MockStorageService _storageService = MockStorageService();
+  final FirebaseStorage _storage = FirebaseStorage.instance;
 
   UserModel? _user;
   File? _profileImage;
@@ -36,31 +36,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _loadUserData();
+    // Delay loading to ensure widget is mounted
+    Future.microtask(() => _loadUserData());
   }
 
   Future<void> _loadUserData() async {
+    if (!mounted) return;
+
     setState(() => _isLoading = true);
 
     try {
       final userId = _authService.currentUser?.uid;
       if (userId == null) {
+        if (!mounted) return;
         Navigator.pushReplacementNamed(context, '/login');
         return;
       }
 
       final user = await _authService.getUserProfile(userId);
       if (user == null) {
+        if (!mounted) return;
         showSnackBar(context, 'Tidak dapat memuat data pengguna');
         return;
       }
 
+      if (!mounted) return;
       setState(() {
         _user = user;
         fullNameController.text = user.fullName;
         nicknameController.text = user.nickname;
         phoneController.text = user.phone;
-        // Note: Due to the height/weight swap issue, we need to handle it here
         ageController.text = user.age.toString();
         heightController.text = user.height.toString();
         weightController.text = user.weight.toString();
@@ -68,9 +73,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       });
     } catch (e) {
       debugPrint('Error loading user data: $e');
+      if (!mounted) return;
       showSnackBar(context, 'Terjadi kesalahan saat memuat data');
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -79,13 +87,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final picker = ImagePicker();
       final pickedImage = await picker.pickImage(source: ImageSource.gallery);
 
-      if (pickedImage != null) {
+      if (pickedImage != null && mounted) {
         setState(() {
           _profileImage = File(pickedImage.path);
         });
       }
     } catch (e) {
       debugPrint("Error picking image: $e");
+    }
+  }
+
+  Future<String?> _uploadProfileImage(File imageFile) async {
+    try {
+      final userId = _authService.currentUser?.uid;
+      if (userId == null) return null;
+
+      final ref = _storage.ref().child('profile_images/$userId.jpg');
+      await ref.putFile(imageFile);
+      return await ref.getDownloadURL();
+    } catch (e) {
+      debugPrint('Error uploading profile image: $e');
+      return null;
     }
   }
 
@@ -102,6 +124,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return;
     }
 
+    if (!mounted) return;
     setState(() => _isSaving = true);
 
     try {
@@ -109,9 +132,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       // Upload new profile image if selected
       if (_profileImage != null) {
-        profileImageUrl = await _storageService.uploadProfileImage(
-          _profileImage!,
-        );
+        profileImageUrl = await _uploadProfileImage(_profileImage!);
       }
 
       // Update user model
@@ -123,7 +144,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         phone: phoneController.text,
         gender: _user!.gender,
         age: int.tryParse(ageController.text) ?? _user!.age,
-        // Note: Height and weight are swapped in UI, so we save them correctly
         height: int.tryParse(heightController.text) ?? _user!.height,
         weight: int.tryParse(weightController.text) ?? _user!.weight,
         profileImageUrl: profileImageUrl,
@@ -132,25 +152,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
 
       await _authService.updateUserProfile(_user!.id, updatedUser);
-      if (mounted) showSnackBar(context, 'Profil berhasil diperbarui');
+      if (!mounted) return;
+      showSnackBar(context, 'Profil berhasil diperbarui');
     } catch (e) {
       debugPrint('Error updating profile: $e');
-      if (mounted)
-        showSnackBar(context, 'Terjadi kesalahan saat menyimpan profil');
+      if (!mounted) return;
+      showSnackBar(context, 'Terjadi kesalahan saat menyimpan profil');
     } finally {
-      if (mounted) setState(() => _isSaving = false);
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
     }
   }
 
   Future<void> _logout() async {
     try {
       await _authService.signOut();
-      if (mounted) {
-        Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
-      }
+      if (!mounted) return;
+      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
     } catch (e) {
       debugPrint('Error signing out: $e');
-      if (mounted) showSnackBar(context, 'Terjadi kesalahan saat keluar');
+      if (!mounted) return;
+      showSnackBar(context, 'Terjadi kesalahan saat keluar');
     }
   }
 
