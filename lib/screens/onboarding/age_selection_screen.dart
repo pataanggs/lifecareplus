@@ -5,6 +5,7 @@ import 'package:lifecareplus/widgets/rounded_button.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'weight_input_screen.dart';
+import 'package:lifecareplus/utils/onboarding_preferences.dart';
 
 class AgeInputScreen extends StatefulWidget {
   final String selectedGender;
@@ -97,37 +98,32 @@ class _AgeInputScreenState extends State<AgeInputScreen>
     }
   }
 
-  void _onNext() {
-    // Provide haptic feedback
+  void _onNext() async {
     HapticFeedback.mediumImpact();
-    // Log to console
-    print('[LOG] Gender: ${widget.selectedGender}, Age: $selectedAge');
+    await OnboardingPreferences.saveAge(selectedAge);
     // Animate out before navigating
     _animationController.reverse().then((_) {
       // Navigate to WeightInputScreen and pass gender & age
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder:
-              (context) => WeightInputScreen(
-                selectedGender: widget.selectedGender,
-                selectedAge: selectedAge,
-                selectedHeight:
-                    173, // default height, will be set in next screen
-              ),
+          builder: (context) => WeightInputScreen(
+            selectedGender: widget.selectedGender,
+            selectedAge: selectedAge,
+            selectedHeight: 173, // default height, will be set in next screen
+          ),
         ),
       );
     });
   }
 
-  void _updateAge(int age) {
+  void _updateAge(int age) async {
     if (age != selectedAge && age >= minAge && age <= maxAge) {
-      // Provide subtle haptic feedback
       HapticFeedback.selectionClick();
-
       setState(() {
         selectedAge = age;
       });
+      await OnboardingPreferences.saveAge(age);
     }
   }
 

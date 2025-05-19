@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../../services/auth_service.dart';
-import '../../services/mock_auth_service.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../cubits/auth/auth_cubit.dart';
 import '../../utils/colors.dart';
 import '../../utils/show_snackbar.dart';
 import '../../widgets/rounded_input.dart';
@@ -22,17 +23,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final phoneController = TextEditingController();
   final passwordController = TextEditingController();
   final confirmPasswordController = TextEditingController();
-  final AuthService _authService = AuthService();
-
-  // Controls when we show the main content
   bool _showContent = false;
+  bool _isNavigating = false;
+
+  late AuthCubit _authCubit;
 
   @override
   void initState() {
     super.initState();
-    // Slight delay before starting animations
     Future.delayed(const Duration(milliseconds: 100), () {
       if (mounted) setState(() => _showContent = true);
+    });
+
+    SharedPreferences.getInstance().then((prefs) {
+      _authCubit = AuthCubit(prefs);
     });
   }
 
@@ -43,10 +47,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
     phoneController.dispose();
     passwordController.dispose();
     confirmPasswordController.dispose();
+    _authCubit.close();
     super.dispose();
   }
 
   void _register() async {
+    if (_isNavigating) return;
     HapticFeedback.lightImpact();
 
     final name = nameController.text.trim();
@@ -72,290 +78,285 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
 
     try {
-      final result = await _authService.createUserWithEmailAndPassword(
+      await _authCubit.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
-
-      // Save basic user information
-      await _authService.createUserProfile(
-        uid: result.user!.uid,
-        fullName: name,
-        nickname: name.split(' ')[0], // Default nickname as first name
-        email: email,
-        phone: phone,
-        gender: '', // Will be set in gender selection screen
-        age: 0, // Will be set later
-        height: 0, // Will be set later
-        weight: 0, // Will be set later
-      );
-
-      // Navigate to onboarding flow
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const GenderSelectionScreen()),
-        );
-      }
     } catch (e) {
-      String errorMessage = 'Gagal membuat akun. Silakan coba lagi';
-
-      // Check for common errors in our mock implementation
-      if (e.toString().contains('already in use')) {
-        errorMessage = 'Email sudah terdaftar';
-      } else if (e.toString().contains('invalid email')) {
-        errorMessage = 'Format email tidak valid';
-      } else if (e.toString().contains('weak password')) {
-        errorMessage = 'Password terlalu lemah';
-      }
-
       if (mounted) {
-        showSnackBar(context, errorMessage);
+        showSnackBar(context, e.toString());
       }
-    } finally {
-      if (mounted) {}
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
-          child: AnimatedOpacity(
-            opacity: _showContent ? 1.0 : 0.0,
-            duration: const Duration(milliseconds: 300),
-            child: ListView(
-              children: [
-                // Header with back button
-                Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        GestureDetector(
+    return BlocProvider.value(
+      value: _authCubit,
+      child: BlocConsumer<AuthCubit, AuthState>(
+        listener: (context, state) {
+          if (state is AuthStateLoaded) {
+            _isNavigating = true;
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const GenderSelectionScreen()),
+            );
+          }
+
+          if (state is AuthStateFailure) {
+            if (mounted) {
+              showSnackBar(context, 'Terjadi kesalahan saat mendaftar');
+            }
+          }
+        },
+        builder: (context, state) {
+          return Scaffold(
+            backgroundColor: AppColors.background,
+            body: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
+                child: AnimatedOpacity(
+                  opacity: _showContent ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 300),
+                  child: ListView(
+                    children: [
+                      // Header with back button
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          GestureDetector(
+                            onTap: () {
+                              HapticFeedback.selectionClick();
+                              Navigator.pop(context);
+                            },
+                            child: const Icon(
+                              Icons.arrow_back_ios,
+                              color: AppColors.textHighlight,
+                            ),
+                          ),
+                          Expanded(
+                            child: Center(
+                              child: Text(
+                                'Buat Akun',
+                                style: TextStyle(
+                                  color: AppColors.textHighlight,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 24),
+                        ],
+                      )
+                      .animate(delay: 100.ms)
+                      .slideY(
+                        begin: -0.2,
+                        end: 0,
+                        duration: 400.ms,
+                        curve: Curves.easeOutQuad,
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Welcome text
+                      const Center(
+                        child: Text(
+                          'Ayo Mulai',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      )
+                      .animate(delay: 200.ms)
+                      .fadeIn(duration: 400.ms, curve: Curves.easeOut),
+
+                      const SizedBox(height: 24),
+
+                      // Form fields - staggered animations
+                      Animate(
+                        effects: [
+                          SlideEffect(
+                            begin: const Offset(0, 0.2),
+                            end: const Offset(0, 0),
+                            duration: 400.ms,
+                            curve: Curves.easeOutQuad,
+                          ),
+                          FadeEffect(
+                            begin: 0,
+                            end: 1,
+                            duration: 400.ms,
+                            curve: Curves.easeOut,
+                          ),
+                        ],
+                        delay: 300.ms,
+                        child: RoundedInput(
+                          label: 'Nama Lengkap',
+                          hint: 'Masukkan nama lengkap anda',
+                          controller: nameController,
+                        ),
+                      ),
+
+                      Animate(
+                        effects: [
+                          SlideEffect(
+                            begin: const Offset(0, 0.2),
+                            end: const Offset(0, 0),
+                            duration: 400.ms,
+                            curve: Curves.easeOutQuad,
+                          ),
+                          FadeEffect(
+                            begin: 0,
+                            end: 1,
+                            duration: 400.ms,
+                            curve: Curves.easeOut,
+                          ),
+                        ],
+                        delay: 350.ms,
+                        child: RoundedInput(
+                          label: 'Email',
+                          hint: 'example@example.com',
+                          controller: emailController,
+                          keyboardType: TextInputType.emailAddress,
+                        ),
+                      ),
+
+                      Animate(
+                        effects: [
+                          SlideEffect(
+                            begin: const Offset(0, 0.2),
+                            end: const Offset(0, 0),
+                            duration: 400.ms,
+                            curve: Curves.easeOutQuad,
+                          ),
+                          FadeEffect(
+                            begin: 0,
+                            end: 1,
+                            duration: 400.ms,
+                            curve: Curves.easeOut,
+                          ),
+                        ],
+                        delay: 400.ms,
+                        child: RoundedInput(
+                          label: 'Nomor Hp',
+                          hint: '+62 812 3456 7890',
+                          controller: phoneController,
+                          keyboardType: TextInputType.phone,
+                        ),
+                      ),
+
+                      Animate(
+                        effects: [
+                          SlideEffect(
+                            begin: const Offset(0, 0.2),
+                            end: const Offset(0, 0),
+                            duration: 400.ms,
+                            curve: Curves.easeOutQuad,
+                          ),
+                          FadeEffect(
+                            begin: 0,
+                            end: 1,
+                            duration: 400.ms,
+                            curve: Curves.easeOut,
+                          ),
+                        ],
+                        delay: 500.ms,
+                        child: RoundedInput(
+                          label: 'Kata Sandi',
+                          hint: '************',
+                          controller: passwordController,
+                          isPassword: true,
+                        ),
+                      ),
+
+                      Animate(
+                        effects: [
+                          SlideEffect(
+                            begin: const Offset(0, 0.2),
+                            end: const Offset(0, 0),
+                            duration: 400.ms,
+                            curve: Curves.easeOutQuad,
+                          ),
+                          FadeEffect(
+                            begin: 0,
+                            end: 1,
+                            duration: 400.ms,
+                            curve: Curves.easeOut,
+                          ),
+                        ],
+                        delay: 600.ms,
+                        child: RoundedInput(
+                          label: 'Konfirmasi Kata Sandi',
+                          hint: '************',
+                          controller: confirmPasswordController,
+                          isPassword: true,
+                        ),
+                      ),
+
+                      // Register button
+                      Container(
+                        margin: const EdgeInsets.only(top: 16, bottom: 16),
+                        child: Animate(
+                          effects: [
+                            FadeEffect(duration: 400.ms),
+                            ScaleEffect(
+                              begin: const Offset(0.95, 0.95),
+                              end: const Offset(1, 1),
+                              duration: 400.ms,
+                              curve: Curves.easeOut,
+                            ),
+                          ],
+                          delay: 700.ms,
+                          child: state is AuthStateLoading
+                              ? const Center(
+                                  child: CircularProgressIndicator(
+                                    color: AppColors.textHighlight,
+                                  ),
+                                )
+                              : RoundedButton(
+                                  text: 'Daftar',
+                                  onPressed: _register,
+                                  color: AppColors.textHighlight,
+                                  textColor: Colors.black,
+                                ),
+                        ),
+                      ),
+
+                      // Login link
+                      Center(
+                        child: GestureDetector(
                           onTap: () {
                             HapticFeedback.selectionClick();
                             Navigator.pop(context);
                           },
-                          child: const Icon(
-                            Icons.arrow_back_ios,
-                            color: AppColors.textHighlight,
-                          ),
-                        ),
-                        Expanded(
-                          child: Center(
-                            child: Text(
-                              'Buat Akun',
-                              style: TextStyle(
-                                color: AppColors.textHighlight,
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                              ),
+                          child: const Text.rich(
+                            TextSpan(
+                              text: 'Kamu sudah punya akun? ',
+                              style: TextStyle(color: Colors.white),
+                              children: [
+                                TextSpan(
+                                  text: 'Masuk',
+                                  style: TextStyle(
+                                    color: AppColors.textHighlight,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
-                        // Add invisible icon to balance the layout
-                        const SizedBox(width: 24),
-                      ],
-                    )
-                    .animate(delay: 100.ms)
-                    .slideY(
-                      begin: -0.2,
-                      end: 0,
-                      duration: 400.ms,
-                      curve: Curves.easeOutQuad,
-                    ),
-
-                const SizedBox(height: 24),
-
-                // Welcome text
-                const Center(
-                      child: Text(
-                        'Ayo Mulai',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    )
-                    .animate(delay: 200.ms)
-                    .fadeIn(duration: 400.ms, curve: Curves.easeOut),
-
-                const SizedBox(height: 24),
-
-                // Form fields - staggered animations
-                Animate(
-                  effects: [
-                    SlideEffect(
-                      begin: const Offset(0, 0.2),
-                      end: const Offset(0, 0),
-                      duration: 400.ms,
-                      curve: Curves.easeOutQuad,
-                    ),
-                    FadeEffect(
-                      begin: 0,
-                      end: 1,
-                      duration: 400.ms,
-                      curve: Curves.easeOut,
-                    ),
-                  ],
-                  delay: 300.ms,
-                  child: RoundedInput(
-                    label: 'Nama Lengkap',
-                    hint: 'example@example.com',
-                    controller: nameController,
-                  ),
-                ),
-
-                Animate(
-                  effects: [
-                    SlideEffect(
-                      begin: const Offset(0, 0.2),
-                      end: const Offset(0, 0),
-                      duration: 400.ms,
-                      curve: Curves.easeOutQuad,
-                    ),
-                    FadeEffect(
-                      begin: 0,
-                      end: 1,
-                      duration: 400.ms,
-                      curve: Curves.easeOut,
-                    ),
-                  ],
-                  delay: 350.ms,
-                  child: RoundedInput(
-                    label: 'Email',
-                    hint: 'example@example.com',
-                    controller: emailController,
-                  ),
-                ),
-
-                Animate(
-                  effects: [
-                    SlideEffect(
-                      begin: const Offset(0, 0.2),
-                      end: const Offset(0, 0),
-                      duration: 400.ms,
-                      curve: Curves.easeOutQuad,
-                    ),
-                    FadeEffect(
-                      begin: 0,
-                      end: 1,
-                      duration: 400.ms,
-                      curve: Curves.easeOut,
-                    ),
-                  ],
-                  delay: 400.ms,
-                  child: RoundedInput(
-                    label: 'Nomor Hp',
-                    hint: '+62 812 3456 7890',
-                    controller: phoneController,
-                  ),
-                ),
-
-                Animate(
-                  effects: [
-                    SlideEffect(
-                      begin: const Offset(0, 0.2),
-                      end: const Offset(0, 0),
-                      duration: 400.ms,
-                      curve: Curves.easeOutQuad,
-                    ),
-                    FadeEffect(
-                      begin: 0,
-                      end: 1,
-                      duration: 400.ms,
-                      curve: Curves.easeOut,
-                    ),
-                  ],
-                  delay: 500.ms,
-                  child: RoundedInput(
-                    label: 'Kata Sandi',
-                    hint: '************',
-                    controller: passwordController,
-                    isPassword: true,
-                  ),
-                ),
-
-                Animate(
-                  effects: [
-                    SlideEffect(
-                      begin: const Offset(0, 0.2),
-                      end: const Offset(0, 0),
-                      duration: 400.ms,
-                      curve: Curves.easeOutQuad,
-                    ),
-                    FadeEffect(
-                      begin: 0,
-                      end: 1,
-                      duration: 400.ms,
-                      curve: Curves.easeOut,
-                    ),
-                  ],
-                  delay: 600.ms,
-                  child: RoundedInput(
-                    label: 'Konfirmasi Kata Sandi',
-                    hint: '************',
-                    controller: confirmPasswordController,
-                    isPassword: true,
-                  ),
-                ),
-
-                // Register button
-                Container(
-                  margin: const EdgeInsets.only(top: 16, bottom: 16),
-                  child: Animate(
-                    effects: [
-                      FadeEffect(duration: 400.ms),
-                      ScaleEffect(
-                        begin: const Offset(0.95, 0.95),
-                        end: const Offset(1, 1),
-                        duration: 400.ms,
-                        curve: Curves.easeOut,
-                      ),
+                      )
+                      .animate(delay: 800.ms)
+                      .fadeIn(duration: 400.ms, curve: Curves.easeOut),
                     ],
-                    delay: 700.ms,
-                    child: RoundedButton(
-                      text: 'Daftar',
-                      onPressed: _register,
-                      color: AppColors.textHighlight,
-                      textColor: Colors.black,
-                    ),
                   ),
                 ),
-
-                // Login link
-                Center(
-                      child: GestureDetector(
-                        onTap: () {
-                          HapticFeedback.selectionClick();
-                          Navigator.pop(context);
-                        },
-                        child: const Text.rich(
-                          TextSpan(
-                            text: 'Kamu sudah punya akun? ',
-                            style: TextStyle(color: Colors.white),
-                            children: [
-                              TextSpan(
-                                text: 'Masuk',
-                                style: TextStyle(
-                                  color: AppColors.textHighlight,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    )
-                    .animate(delay: 800.ms)
-                    .fadeIn(duration: 400.ms, curve: Curves.easeOut),
-              ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }

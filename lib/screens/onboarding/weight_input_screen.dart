@@ -5,6 +5,7 @@ import 'package:lifecareplus/widgets/rounded_button.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'height_input_screen.dart';
+import 'package:lifecareplus/utils/onboarding_preferences.dart';
 
 class WeightInputScreen extends StatefulWidget {
   final String selectedGender;
@@ -89,11 +90,9 @@ class _WeightInputScreenState extends State<WeightInputScreen>
     }
   }
 
-  void _onNext() {
+  void _onNext() async {
     HapticFeedback.mediumImpact();
-    print(
-      '[LOG] Gender: \x1b[1m${widget.selectedGender}\x1b[0m, Age: ${widget.selectedAge}, Height: ${widget.selectedHeight}, Weight: $selectedWeight',
-    );
+    await OnboardingPreferences.saveWeight(selectedWeight);
     _animationController.reverse().then((_) {
       Navigator.push(
         context,
@@ -109,7 +108,7 @@ class _WeightInputScreenState extends State<WeightInputScreen>
     });
   }
 
-  void _updateWeight(int weight) {
+  void _updateWeight(int weight) async {
     if (weight != selectedWeight &&
         weight >= minWeight &&
         weight <= maxWeight) {
@@ -117,6 +116,7 @@ class _WeightInputScreenState extends State<WeightInputScreen>
       setState(() {
         selectedWeight = weight;
       });
+      await OnboardingPreferences.saveWeight(weight);
     }
   }
 

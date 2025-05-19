@@ -1,12 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import '../models/medicine_model.dart';
-import '../services/mock_medicine_service.dart';
-import '../services/mock_storage_service.dart';
 
 class MedicineProvider with ChangeNotifier {
-  final MockMedicineService _medicineService = MockMedicineService();
-  final MockStorageService _storageService = MockStorageService();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseStorage _storage = FirebaseStorage.instance;
   List<Medicine> _medicines = [];
   bool _isLoading = false;
   String? _error;
@@ -17,9 +17,16 @@ class MedicineProvider with ChangeNotifier {
 
   // Listen to medicines stream for the current user
   void listenToMedicines() {
-    _medicineService.streamMedicines().listen(
-      (medicines) {
-        _medicines = medicines;
+    final userId = _firestore.collection('users').doc().id; // Get current user ID
+    _firestore
+        .collection('medicines')
+        .where('userId', isEqualTo: userId)
+        .snapshots()
+        .listen(
+      (snapshot) {
+        _medicines = snapshot.docs
+            .map((doc) => Medicine.fromMap(doc.data()))
+            .toList();
         _error = null;
         notifyListeners();
       },
@@ -52,14 +59,13 @@ class MedicineProvider with ChangeNotifier {
       // Upload image if provided
       String? imageUrl;
       if (imageFile != null) {
-        imageUrl = await _storageService.uploadMedicationImage(
-          imageFile,
-          Medicine.generateId(),
-        );
+        final ref = _storage.ref().child('medicines/${DateTime.now().millisecondsSinceEpoch}.jpg');
+        await ref.putFile(imageFile);
+        imageUrl = await ref.getDownloadURL();
       }
 
       // Create medicine model with a new ID
-      final String medicineId = Medicine.generateId();
+      final String medicineId = _firestore.collection('medicines').doc().id;
       final medicine = Medicine(
         id: medicineId,
         name: name,
@@ -70,13 +76,13 @@ class MedicineProvider with ChangeNotifier {
         endDate: endDate,
         notes: notes,
         color: color,
-        userId: 'current_user', // Will be set by the service
+        userId: _firestore.collection('users').doc().id, // Get current user ID
         reminderEnabled: reminderEnabled,
         imageUrl: imageUrl,
       );
 
-      // Add to local storage
-      await _medicineService.addMedicine(medicine);
+      // Add to Firestore
+      await _firestore.collection('medicines').doc(medicineId).set(medicine.toMap());
       return true;
     } catch (e) {
       _error = 'Failed to add medicine: $e';
@@ -108,16 +114,20 @@ class MedicineProvider with ChangeNotifier {
 
     try {
       // Find existing medicine
-      final existingMedicine = await _medicineService.getMedicineById(id);
-      if (existingMedicine == null) {
+      final doc = await _firestore.collection('medicines').doc(id).get();
+      if (!doc.exists) {
         _error = 'Medicine not found';
         return false;
       }
 
+      final existingMedicine = Medicine.fromMap(doc.data()!);
+
       // Upload new image if provided
       String? imageUrl;
       if (imageFile != null) {
-        imageUrl = await _storageService.uploadMedicationImage(imageFile, id);
+        final ref = _storage.ref().child('medicines/$id.jpg');
+        await ref.putFile(imageFile);
+        imageUrl = await ref.getDownloadURL();
       }
 
       // Create updated medicine model
@@ -134,8 +144,8 @@ class MedicineProvider with ChangeNotifier {
         imageUrl: imageFile != null ? imageUrl : existingMedicine.imageUrl,
       );
 
-      // Update in storage
-      await _medicineService.updateMedicine(updatedMedicine);
+      // Update in Firestore
+      await _firestore.collection('medicines').doc(id).update(updatedMedicine.toMap());
       return true;
     } catch (e) {
       _error = 'Failed to update medicine: $e';
@@ -154,7 +164,8 @@ class MedicineProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      return await _medicineService.deleteMedicine(id);
+      await _firestore.collection('medicines').doc(id).delete();
+      return true;
     } catch (e) {
       _error = 'Failed to delete medicine: $e';
       debugPrint(_error);

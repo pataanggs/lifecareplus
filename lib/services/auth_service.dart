@@ -1,31 +1,16 @@
-import 'package:flutter/services.dart';
 import 'dart:developer' as developer;
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/user_model.dart';
-import 'mock_auth_service.dart';
 import 'local_storage_service.dart';
 
 class AuthService {
-  // Use mock services instead of Firebase
-  final MockAuthService _mockAuth = MockAuthService();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
   final LocalStorageService _storage = LocalStorageService();
 
-  // Flag to track if we've initialized
-  bool _didEnsureInitialized = false;
-
-  // Ensure initialization of auth service
-  Future<void> ensureInitialized() async {
-    if (!_didEnsureInitialized) {
-      developer.log('Waiting for auth service to initialize...');
-      await _mockAuth.initialized;
-      _didEnsureInitialized = true;
-      developer.log('Auth service initialization complete');
-    }
-  }
-
   // Get current user with error handling
-  MockUser? get currentUser {
+  User? get currentUser {
     try {
-      return _mockAuth.currentUser;
+      return _auth.currentUser;
     } catch (e) {
       developer.log('Error getting current user: $e');
       return null;
@@ -33,34 +18,22 @@ class AuthService {
   }
 
   // Stream to listen to auth state changes
-  Stream<MockUser?> get authStateChanges {
+  Stream<User?> get authStateChanges {
     try {
-      return _mockAuth.authStateChanges;
+      return _auth.authStateChanges();
     } catch (e) {
       developer.log('Error getting auth state changes: $e');
-      // Return an empty stream if service isn't initialized
       return Stream.value(null);
     }
   }
 
-  // Sign in with Google (mock implementation)
-  Future<MockUserCredential?> signInWithGoogle() async {
-    await ensureInitialized();
-
+  // Sign in with Google
+  Future<UserCredential?> signInWithGoogle() async {
     try {
-      // Use mock Google sign-in
-      final credential = await _mockAuth.signInWithGoogle();
-
-      if (credential == null || credential.user == null) {
-        return null;
-      }
-
-      developer.log(
-        'Successfully signed in with mock Google: ${credential.user?.uid}',
-      );
-      return credential;
+      // TODO: Implement Google Sign In
+      throw UnimplementedError('Google Sign In not implemented yet');
     } catch (e, stackTrace) {
-      developer.log('Error with mock Google sign-in: $e');
+      developer.log('Error with Google sign-in: $e');
       developer.log('Stack trace: $stackTrace');
       rethrow;
     }
@@ -68,10 +41,8 @@ class AuthService {
 
   // Sign out
   Future<void> signOut() async {
-    await ensureInitialized();
-
     try {
-      await _mockAuth.signOut();
+      await _auth.signOut();
       developer.log('User signed out successfully');
     } catch (e) {
       developer.log('Error signing out: $e');
@@ -137,14 +108,12 @@ class AuthService {
   }
 
   // Sign in with email and password
-  Future<MockUserCredential> signInWithEmailAndPassword({
+  Future<UserCredential> signInWithEmailAndPassword({
     required String email,
     required String password,
   }) async {
-    await ensureInitialized();
-
     try {
-      return await _mockAuth.signInWithEmailAndPassword(
+      return await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
@@ -155,14 +124,12 @@ class AuthService {
   }
 
   // Register with email and password
-  Future<MockUserCredential> createUserWithEmailAndPassword({
+  Future<UserCredential> createUserWithEmailAndPassword({
     required String email,
     required String password,
   }) async {
-    await ensureInitialized();
-
     try {
-      return await _mockAuth.createUserWithEmailAndPassword(
+      return await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
@@ -174,10 +141,8 @@ class AuthService {
 
   // Reset password
   Future<void> resetPassword(String email) async {
-    await ensureInitialized();
-
     try {
-      await _mockAuth.sendPasswordResetEmail(email: email);
+      await _auth.sendPasswordResetEmail(email: email);
     } catch (e) {
       developer.log('Error resetting password: $e');
       rethrow;

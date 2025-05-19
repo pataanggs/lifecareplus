@@ -1,10 +1,11 @@
+import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-import 'package:permission_handler/permission_handler.dart';
-import '../../utils/colors.dart';
-import '../../widgets/rounded_button.dart';
-import 'home_screen.dart';
+
+import '/widgets/rounded_button.dart';
+import '/screens/root_screen.dart';
+import '/utils/colors.dart';
 
 class NotificationPermissionScreen extends StatefulWidget {
   const NotificationPermissionScreen({super.key});
@@ -53,7 +54,7 @@ class _NotificationPermissionScreenState
     // regardless of whether permission was granted or not
     if (mounted) {
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        MaterialPageRoute(builder: (_) => const RootScreen()),
         (route) => false,
       );
     }
