@@ -46,7 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (mounted) {
         _homeCubit = HomeCubit(prefs);
         _homeCubit?.initProceed();
-        
+
         setState(() {
           _isInitialized = true;
         });
@@ -95,28 +95,94 @@ class _HomeScreenState extends State<HomeScreen> {
         MaterialPageRoute(builder: (_) => const MedicationReminderScreen()),
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Navigating to $feature')),
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Navigating to $feature')));
+    }
+  }
+
+  void _showSignOutDialog() {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Keluar dari Aplikasi'),
+            content: const Text(
+              'Apakah Anda yakin ingin keluar dari aplikasi LifeCare+?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Batal'),
+              ),
+              TextButton(
+                onPressed: _signOut,
+                child: const Text(
+                  'Keluar',
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
+          ),
+    );
+  }
+
+  Future<void> _signOut() async {
+    try {
+      // Show loading indicator
+      Navigator.of(context).pop(); // Close dialog
+
+      // Show loading overlay
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
       );
+
+      // Clear user data
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+
+      // Sign out from Firebase
+      await _auth.signOut();
+
+      // Navigate to login screen
+      if (mounted) {
+        Navigator.of(context).pop(); // Remove loading dialog
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/login',
+          (route) => false, // Remove all previous routes
+        );
+      }
+    } catch (error) {
+      if (kDebugMode) {
+        print('Error signing out: $error');
+      }
+
+      // Close any open dialogs
+      if (mounted) {
+        Navigator.of(context).pop();
+
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Gagal keluar dari aplikasi. Silakan coba lagi.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     if (!_isInitialized) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     if (_homeCubit == null) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     final size = MediaQuery.sizeOf(context);
@@ -143,12 +209,23 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               actions: [
                 IconButton(
-                  icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+                  icon: const Icon(
+                    Icons.notifications_outlined,
+                    color: Colors.white,
+                  ),
                   onPressed: () => _onFeatureButtonTap('Notifications'),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.settings_outlined, color: Colors.white),
+                  icon: const Icon(
+                    Icons.settings_outlined,
+                    color: Colors.white,
+                  ),
                   onPressed: () => _onFeatureButtonTap('Settings'),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.logout, color: Colors.white),
+                  onPressed: _showSignOutDialog,
+                  tooltip: 'Sign Out',
                 ),
                 const SizedBox(width: 8),
               ],
@@ -157,210 +234,245 @@ class _HomeScreenState extends State<HomeScreen> {
               opacity: _showContent ? 1.0 : 0.0,
               duration: const Duration(milliseconds: 300),
               child: SafeArea(
-                child: state is HomeStateLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : state is HomeStateLoaded
+                child:
+                    state is HomeStateLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : state is HomeStateLoaded
                         ? SingleChildScrollView(
-                            physics: const ClampingScrollPhysics(),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Welcome section with user info
-                                Container(
-                                  width: double.infinity,
-                                  color: const Color(0xFF05606B),
-                                  padding: const EdgeInsets.all(16),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        _getGreeting(),
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          color: Colors.white70,
+                          physics: const ClampingScrollPhysics(),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Welcome section with user info
+                              Container(
+                                    width: double.infinity,
+                                    color: const Color(0xFF05606B),
+                                    padding: const EdgeInsets.all(16),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          _getGreeting(),
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            color: Colors.white70,
+                                          ),
                                         ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        state.data.displayName ?? 'User',
-                                        style: const TextStyle(
-                                          fontSize: 24,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          state.data.displayName ?? 'User',
+                                          style: const TextStyle(
+                                            fontSize: 24,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
                                         ),
-                                      ),
-                                      const SizedBox(height: 16),
+                                        const SizedBox(height: 16),
 
-                                      // Health stats summary card
-                                      Container(
-                                        padding: const EdgeInsets.all(16),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius: BorderRadius.circular(12),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black.withOpacity(0.1),
-                                              blurRadius: 8,
-                                              offset: const Offset(0, 2),
+                                        // Health stats summary card
+                                        Container(
+                                          padding: const EdgeInsets.all(16),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: BorderRadius.circular(
+                                              12,
                                             ),
-                                          ],
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black.withOpacity(
+                                                  0.1,
+                                                ),
+                                                blurRadius: 8,
+                                                offset: const Offset(0, 2),
+                                              ),
+                                            ],
+                                          ),
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceAround,
+                                            children: [
+                                              _buildStatItem(
+                                                'Berat',
+                                                '${state.data.weight ?? 0} kg',
+                                              ),
+                                              _buildStatDivider(),
+                                              _buildStatItem(
+                                                'Tinggi',
+                                                '${state.data.height ?? 0} cm',
+                                              ),
+                                              _buildStatDivider(),
+                                              _buildStatItem(
+                                                'BMI',
+                                                state.data.bmi?.toStringAsFixed(
+                                                      1,
+                                                    ) ??
+                                                    '0.0',
+                                              ),
+                                            ],
+                                          ),
                                         ),
-                                        child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                                          children: [
-                                            _buildStatItem(
-                                              'Berat',
-                                              '${state.data.weight ?? 0} kg',
-                                            ),
-                                            _buildStatDivider(),
-                                            _buildStatItem(
-                                              'Tinggi',
-                                              '${state.data.height ?? 0} cm',
-                                            ),
-                                            _buildStatDivider(),
-                                            _buildStatItem(
-                                              'BMI',
-                                              state.data.bmi?.toStringAsFixed(1) ?? '0.0',
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ).animate(delay: 200.ms).fadeIn(
-                                      duration: 600.ms,
-                                      curve: Curves.easeOut,
+                                      ],
                                     ),
+                                  )
+                                  .animate(delay: 200.ms)
+                                  .fadeIn(
+                                    duration: 600.ms,
+                                    curve: Curves.easeOut,
+                                  ),
 
-                                // Feature buttons grid
-                                Padding(
-                                  padding: const EdgeInsets.all(16),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Padding(
-                                        padding: EdgeInsets.symmetric(vertical: 8.0),
-                                        child: Text(
-                                          'Fitur LifeCare+',
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
-                                          ),
+                              // Feature buttons grid
+                              Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Padding(
+                                      padding: EdgeInsets.symmetric(
+                                        vertical: 8.0,
+                                      ),
+                                      child: Text(
+                                        'Fitur LifeCare+',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
                                         ),
                                       ),
-                                      const SizedBox(height: 16),
-                                      // First row of feature buttons
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                                        children: [
-                                          _buildFeatureButton(
-                                            icon: Icons.medical_information,
-                                            label: 'Riwayat Medis',
-                                            color: Colors.blue.shade100,
-                                            iconColor: Colors.blue.shade800,
-                                            onTap: () => _onFeatureButtonTap('Medical History'),
-                                            delay: 300,
-                                          ),
-                                          _buildFeatureButton(
-                                            icon: Icons.calendar_month,
-                                            label: 'Jadwal Konsultasi',
-                                            color: Colors.green.shade100,
-                                            iconColor: Colors.green.shade800,
-                                            onTap: () => _onFeatureButtonTap('Consultations'),
-                                            delay: 400,
-                                          ),
-                                          _buildFeatureButton(
-                                            icon: Icons.medication,
-                                            label: 'Pengingat Obat',
-                                            color: Colors.orange.shade100,
-                                            iconColor: Colors.orange.shade800,
-                                            onTap: () => _onFeatureButtonTap('Medications'),
-                                            delay: 500,
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 24),
-                                      // Second row of feature buttons
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                                        children: [
-                                          _buildFeatureButton(
-                                            icon: Icons.monitor_heart,
-                                            label: 'Pantau Vital',
-                                            color: Colors.red.shade100,
-                                            iconColor: Colors.red.shade800,
-                                            onTap: () => _onFeatureButtonTap('Vital Signs'),
-                                            delay: 600,
-                                          ),
-                                          _buildFeatureButton(
-                                            icon: Icons.local_hospital,
-                                            label: 'Dokter Terdekat',
-                                            color: Colors.purple.shade100,
-                                            iconColor: Colors.purple.shade800,
-                                            onTap: () => _onFeatureButtonTap('Nearby Doctors'),
-                                            delay: 700,
-                                          ),
-                                          _buildFeatureButton(
-                                            icon: Icons.chat_bubble_outline,
-                                            label: 'Konsultasi',
-                                            color: Colors.teal.shade100,
-                                            iconColor: Colors.teal.shade800,
-                                            onTap: () => _onFeatureButtonTap('Chat'),
-                                            delay: 800,
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    // First row of feature buttons
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceAround,
+                                      children: [
+                                        _buildFeatureButton(
+                                          icon: Icons.medical_information,
+                                          label: 'Riwayat Medis',
+                                          color: Colors.blue.shade100,
+                                          iconColor: Colors.blue.shade800,
+                                          onTap:
+                                              () => _onFeatureButtonTap(
+                                                'Medical History',
+                                              ),
+                                          delay: 300,
+                                        ),
+                                        _buildFeatureButton(
+                                          icon: Icons.calendar_month,
+                                          label: 'Jadwal Konsultasi',
+                                          color: Colors.green.shade100,
+                                          iconColor: Colors.green.shade800,
+                                          onTap:
+                                              () => _onFeatureButtonTap(
+                                                'Consultations',
+                                              ),
+                                          delay: 400,
+                                        ),
+                                        _buildFeatureButton(
+                                          icon: Icons.medication,
+                                          label: 'Pengingat Obat',
+                                          color: Colors.orange.shade100,
+                                          iconColor: Colors.orange.shade800,
+                                          onTap:
+                                              () => _onFeatureButtonTap(
+                                                'Medications',
+                                              ),
+                                          delay: 500,
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 24),
+                                    // Second row of feature buttons
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceAround,
+                                      children: [
+                                        _buildFeatureButton(
+                                          icon: Icons.monitor_heart,
+                                          label: 'Pantau Vital',
+                                          color: Colors.red.shade100,
+                                          iconColor: Colors.red.shade800,
+                                          onTap:
+                                              () => _onFeatureButtonTap(
+                                                'Vital Signs',
+                                              ),
+                                          delay: 600,
+                                        ),
+                                        _buildFeatureButton(
+                                          icon: Icons.local_hospital,
+                                          label: 'Dokter Terdekat',
+                                          color: Colors.purple.shade100,
+                                          iconColor: Colors.purple.shade800,
+                                          onTap:
+                                              () => _onFeatureButtonTap(
+                                                'Nearby Doctors',
+                                              ),
+                                          delay: 700,
+                                        ),
+                                        _buildFeatureButton(
+                                          icon: Icons.chat_bubble_outline,
+                                          label: 'Konsultasi',
+                                          color: Colors.teal.shade100,
+                                          iconColor: Colors.teal.shade800,
+                                          onTap:
+                                              () => _onFeatureButtonTap('Chat'),
+                                          delay: 800,
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                                 ),
+                              ),
 
-                                // Articles section with icon placeholders
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Padding(
-                                        padding: EdgeInsets.symmetric(vertical: 8.0),
-                                        child: Text(
-                                          'Artikel Kesehatan',
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
-                                          ),
+                              // Articles section with icon placeholders
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Padding(
+                                      padding: EdgeInsets.symmetric(
+                                        vertical: 8.0,
+                                      ),
+                                      child: Text(
+                                        'Artikel Kesehatan',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
                                         ),
                                       ),
-                                      const SizedBox(height: 12),
-                                      // Using icons instead of images
-                                      _buildArticleCardWithIcon(
-                                        title: 'Tips Menjaga Kesehatan Jantung',
-                                        icon: Icons.favorite,
-                                        iconBackground: Colors.red.shade100,
-                                        iconColor: Colors.red.shade800,
-                                        category: 'Kesehatan Jantung',
-                                        delay: 900,
-                                        size: size,
-                                      ),
-                                      const SizedBox(height: 16),
-                                      _buildArticleCardWithIcon(
-                                        title: 'Makanan untuk Meningkatkan Imunitas',
-                                        icon: Icons.restaurant,
-                                        iconBackground: Colors.green.shade100,
-                                        iconColor: Colors.green.shade800,
-                                        category: 'Nutrisi',
-                                        delay: 1000,
-                                        size: size,
-                                      ),
-                                      const SizedBox(height: 24),
-                                    ],
-                                  ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    // Using icons instead of images
+                                    _buildArticleCardWithIcon(
+                                      title: 'Tips Menjaga Kesehatan Jantung',
+                                      icon: Icons.favorite,
+                                      iconBackground: Colors.red.shade100,
+                                      iconColor: Colors.red.shade800,
+                                      category: 'Kesehatan Jantung',
+                                      delay: 900,
+                                      size: size,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    _buildArticleCardWithIcon(
+                                      title:
+                                          'Makanan untuk Meningkatkan Imunitas',
+                                      icon: Icons.restaurant,
+                                      iconBackground: Colors.green.shade100,
+                                      iconColor: Colors.green.shade800,
+                                      category: 'Nutrisi',
+                                      delay: 1000,
+                                      size: size,
+                                    ),
+                                    const SizedBox(height: 24),
+                                  ],
                                 ),
-                              ],
-                            ),
-                          )
-                        : const Center(
-                            child: Text('Something went wrong'),
+                              ),
+                            ],
                           ),
+                        )
+                        : const Center(child: Text('Something went wrong')),
               ),
             ),
           );
@@ -402,41 +514,44 @@ class _HomeScreenState extends State<HomeScreen> {
     required int delay,
   }) {
     return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Column(
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Column(
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            child: Icon(icon, size: 30, color: iconColor),
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            width: 80,
-            child: Text(
-              label,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
+                child: Icon(icon, size: 30, color: iconColor),
               ),
-            ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: 80,
+                child: Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-    ).animate(delay: delay.ms).fadeIn(duration: 400.ms, curve: Curves.easeOut).slideY(begin: 0.2, end: 0, duration: 400.ms, curve: Curves.easeOut);
+        )
+        .animate(delay: delay.ms)
+        .fadeIn(duration: 400.ms, curve: Curves.easeOut)
+        .slideY(begin: 0.2, end: 0, duration: 400.ms, curve: Curves.easeOut);
   }
 
   Widget _buildArticleCardWithIcon({

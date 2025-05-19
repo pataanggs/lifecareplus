@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:image_picker/image_picker.dart';
@@ -132,6 +133,9 @@ class _ProfileDataScreenState extends State<ProfileDataScreen>
       // Mark onboarding as complete
       await prefs.setBool('onboarding_complete', true);
 
+      // Call the new method to mark this user's onboarding as complete
+      await _completeOnboarding();
+
       // Navigate to notification permission screen
       if (mounted) {
         Navigator.push(
@@ -145,6 +149,27 @@ class _ProfileDataScreenState extends State<ProfileDataScreen>
       if (mounted) {
         showSnackBar(context, 'Terjadi kesalahan saat menyimpan data');
       }
+    }
+  }
+
+  Future<void> _completeOnboarding() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final prefs = await SharedPreferences.getInstance();
+        // Mark this user as having completed onboarding
+        await prefs.setBool('${user.uid}_onboarding_completed', true);
+
+        // Save all the user profile data to your database
+        // You can add code here to save profile data to Firebase or other database
+
+        // Note: We're not navigating here since we want to show the notification permission screen first
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print("Error completing onboarding: $e");
+      }
+      // Don't show error message here, let the parent function handle it
     }
   }
 

@@ -453,47 +453,280 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
                               ),
                             ),
 
-                            _buildTimeSelectionSection(
-                              title: 'Pagi',
-                              icon: Icons.wb_sunny_outlined,
-                              iconColor: Colors.orange,
-                              times: ['06.00', '07.00', '08.00', '09.00'],
-                              selectedTime: tempSelectedTime,
-                              onTimeSelected: (time) {
-                                // Update both the temporary variable and the parent state
-                                setModalState(() => tempSelectedTime = time);
-                                setState(() => _selectedTime = time);
-                              },
-                            ),
-                            const SizedBox(height: 24),
-                            _buildTimeSelectionSection(
-                              title: 'Siang',
-                              icon: Icons.wb_sunny,
-                              iconColor: Colors.amber.shade700,
-                              times: ['12.00', '13.00', '14.00'],
-                              selectedTime: tempSelectedTime,
-                              onTimeSelected: (time) {
-                                setModalState(() => tempSelectedTime = time);
-                                setState(() => _selectedTime = time);
-                              },
-                            ),
-                            const SizedBox(height: 24),
-                            _buildTimeSelectionSection(
-                              title: 'Malam',
-                              icon: Icons.nightlight_round,
-                              iconColor: Colors.indigo,
-                              times: [
-                                '18.00',
-                                '19.00',
-                                '20.00',
-                                '21.00',
-                                '22.00',
+                            // Custom time picker with hours and minutes
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                // Hours picker
+                                Column(
+                                  children: [
+                                    const Text(
+                                      'Jam',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Container(
+                                      height: 200,
+                                      width: 80,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: Colors.grey.shade300,
+                                        ),
+                                      ),
+                                      child: ListWheelScrollView.useDelegate(
+                                        itemExtent: 40,
+                                        physics:
+                                            const FixedExtentScrollPhysics(),
+                                        diameterRatio: 1.5,
+                                        overAndUnderCenterOpacity: 0.5,
+                                        onSelectedItemChanged: (index) {
+                                          // Get the hour from the selected index (0-23)
+                                          final hour = index.toString().padLeft(
+                                            2,
+                                            '0',
+                                          );
+                                          // Extract current minutes from tempSelectedTime
+                                          final minutes =
+                                              tempSelectedTime.split('.')[1];
+                                          // Update selected time with new hour
+                                          setModalState(() {
+                                            tempSelectedTime = '$hour.$minutes';
+                                          });
+                                          setState(() {
+                                            _selectedTime = '$hour.$minutes';
+                                          });
+                                        },
+                                        childDelegate:
+                                            ListWheelChildBuilderDelegate(
+                                              childCount: 24,
+                                              builder: (context, index) {
+                                                final hour = index
+                                                    .toString()
+                                                    .padLeft(2, '0');
+                                                // Check if this hour is the one currently selected
+                                                final isSelected =
+                                                    tempSelectedTime.split(
+                                                      '.',
+                                                    )[0] ==
+                                                    hour;
+                                                return Container(
+                                                  alignment: Alignment.center,
+                                                  decoration: BoxDecoration(
+                                                    color:
+                                                        isSelected
+                                                            ? const Color(
+                                                              0xFF05606B,
+                                                            ).withOpacity(0.1)
+                                                            : null,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          8,
+                                                        ),
+                                                  ),
+                                                  child: Text(
+                                                    hour,
+                                                    style: TextStyle(
+                                                      fontSize: 20,
+                                                      fontWeight:
+                                                          isSelected
+                                                              ? FontWeight.bold
+                                                              : FontWeight
+                                                                  .normal,
+                                                      color:
+                                                          isSelected
+                                                              ? const Color(
+                                                                0xFF05606B,
+                                                              )
+                                                              : Colors.black87,
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                        // Set initial hour position
+                                        controller: FixedExtentScrollController(
+                                          initialItem: int.parse(
+                                            tempSelectedTime.split('.')[0],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                  ),
+                                  child: Text(
+                                    ':',
+                                    style: TextStyle(
+                                      fontSize: 40,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.grey.shade800,
+                                    ),
+                                  ),
+                                ),
+
+                                // Minutes picker
+                                Column(
+                                  children: [
+                                    const Text(
+                                      'Menit',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Container(
+                                      height: 200,
+                                      width: 80,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: Colors.grey.shade300,
+                                        ),
+                                      ),
+                                      child: ListWheelScrollView.useDelegate(
+                                        itemExtent: 40,
+                                        physics:
+                                            const FixedExtentScrollPhysics(),
+                                        diameterRatio: 1.5,
+                                        overAndUnderCenterOpacity: 0.5,
+                                        onSelectedItemChanged: (index) {
+                                          // Get the minute from the selected index (00-59)
+                                          final minute = index
+                                              .toString()
+                                              .padLeft(2, '0');
+                                          // Extract current hour from tempSelectedTime
+                                          final hour =
+                                              tempSelectedTime.split('.')[0];
+                                          // Update selected time with new minute
+                                          setModalState(() {
+                                            tempSelectedTime = '$hour.$minute';
+                                          });
+                                          setState(() {
+                                            _selectedTime = '$hour.$minute';
+                                          });
+                                        },
+                                        childDelegate: ListWheelChildBuilderDelegate(
+                                          childCount:
+                                              60, // 60 options (0-59 minutes)
+                                          builder: (context, index) {
+                                            final minute = index
+                                                .toString()
+                                                .padLeft(2, '0');
+                                            // Check if this minute is the one currently selected
+                                            final isSelected =
+                                                tempSelectedTime.split(
+                                                  '.',
+                                                )[1] ==
+                                                minute;
+                                            return Container(
+                                              alignment: Alignment.center,
+                                              decoration: BoxDecoration(
+                                                color:
+                                                    isSelected
+                                                        ? const Color(
+                                                          0xFF05606B,
+                                                        ).withOpacity(0.1)
+                                                        : null,
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                              ),
+                                              child: Text(
+                                                minute,
+                                                style: TextStyle(
+                                                  fontSize: 20,
+                                                  fontWeight:
+                                                      isSelected
+                                                          ? FontWeight.bold
+                                                          : FontWeight.normal,
+                                                  color:
+                                                      isSelected
+                                                          ? const Color(
+                                                            0xFF05606B,
+                                                          )
+                                                          : Colors.black87,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                        // Set initial minute position
+                                        controller: FixedExtentScrollController(
+                                          initialItem: int.parse(
+                                            tempSelectedTime.split('.')[1],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ],
-                              selectedTime: tempSelectedTime,
-                              onTimeSelected: (time) {
-                                setModalState(() => tempSelectedTime = time);
-                                setState(() => _selectedTime = time);
-                              },
+                            ),
+
+                            const SizedBox(height: 40),
+
+                            // Common time presets section
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Waktu yang disarankan:',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                Wrap(
+                                  spacing: 12,
+                                  runSpacing: 12,
+                                  children: [
+                                    _buildTimePresetButton(
+                                      '06.00',
+                                      tempSelectedTime,
+                                      setModalState,
+                                    ),
+                                    _buildTimePresetButton(
+                                      '08.00',
+                                      tempSelectedTime,
+                                      setModalState,
+                                    ),
+                                    _buildTimePresetButton(
+                                      '12.00',
+                                      tempSelectedTime,
+                                      setModalState,
+                                    ),
+                                    _buildTimePresetButton(
+                                      '19.00',
+                                      tempSelectedTime,
+                                      setModalState,
+                                    ),
+                                    _buildTimePresetButton(
+                                      '21.00',
+                                      tempSelectedTime,
+                                      setModalState,
+                                    ),
+                                    _buildTimePresetButton(
+                                      '22.00',
+                                      tempSelectedTime,
+                                      setModalState,
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -518,91 +751,6 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
           },
         );
       },
-    );
-  }
-
-  Widget _buildTimeSelectionSection({
-    required String title,
-    required IconData icon,
-    required Color iconColor,
-    required List<String> times,
-    required String selectedTime,
-    required Function(String) onTimeSelected,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(icon, color: iconColor, size: 24),
-            const SizedBox(width: 8),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children:
-              times.map((time) {
-                final isSelected = selectedTime == time;
-                return InkWell(
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    onTimeSelected(time);
-                  },
-                  borderRadius: BorderRadius.circular(30),
-                  child: Container(
-                    width: 90,
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 12,
-                      horizontal: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color:
-                          isSelected ? const Color(0xFF05606B) : Colors.white,
-                      borderRadius: BorderRadius.circular(30),
-                      border: Border.all(
-                        color:
-                            isSelected
-                                ? const Color(0xFF05606B)
-                                : Colors.grey.shade300,
-                        width: 2,
-                      ),
-                      boxShadow:
-                          isSelected
-                              ? [
-                                BoxShadow(
-                                  color: const Color(
-                                    0xFF05606B,
-                                  ).withValues(alpha: .3),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ]
-                              : null,
-                    ),
-                    child: Text(
-                      time,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: isSelected ? Colors.white : Colors.black87,
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-        ),
-      ],
     );
   }
 
@@ -811,6 +959,52 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
           },
         );
       },
+    );
+  }
+
+  Widget _buildTimePresetButton(
+    String time,
+    String selectedTime,
+    Function(void Function()) setModalState,
+  ) {
+    final isSelected = selectedTime == time;
+
+    return InkWell(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        setModalState(() => selectedTime = time);
+        setState(() => _selectedTime = time);
+      },
+      borderRadius: BorderRadius.circular(30),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF05606B) : Colors.white,
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF05606B) : Colors.grey.shade300,
+            width: 2,
+          ),
+          boxShadow:
+              isSelected
+                  ? [
+                    BoxShadow(
+                      color: const Color(0xFF05606B).withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                  : null,
+        ),
+        child: Text(
+          time,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: isSelected ? Colors.white : Colors.grey.shade800,
+          ),
+        ),
+      ),
     );
   }
 }

@@ -86,7 +86,7 @@ class LifeCareApp extends StatelessWidget {
     medicineProvider.listenToMedicines();
 
     return MaterialApp(
-      title: 'LifeCare+ (Mock)',
+      title: 'LifeCare+',
       debugShowCheckedModeBanner: false,
       navigatorObservers: [RouteObserver()],
       theme: ThemeData(

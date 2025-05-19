@@ -17,10 +17,7 @@ import 'package:flutter/foundation.dart'
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      throw UnsupportedError(
-        'DefaultFirebaseOptions have not been configured for web - '
-        'you can reconfigure this by running the FlutterFire CLI again.',
-      );
+      return web;
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
@@ -28,15 +25,9 @@ class DefaultFirebaseOptions {
       case TargetPlatform.iOS:
         return ios;
       case TargetPlatform.macOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for macos - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return macos;
       case TargetPlatform.windows:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for windows - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return windows;
       case TargetPlatform.linux:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for linux - '
@@ -50,19 +41,53 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDRfoQYYVMvU-pFt4m4K5r8WIDmNiJoAOM',
-    appId: '1:341393530649:android:15c28cba3088415af12f88',
-    messagingSenderId: '341393530649',
-    projectId: 'lifecareplus-2c145',
-    storageBucket: 'lifecareplus-2c145.firebasestorage.app',
+    apiKey: 'AIzaSyBKFR2-2hGt23_htRcb4zwI5mAr3FAXs5Q',
+    appId: '1:338603757091:android:8343b2a3b04fb48ad16b96',
+    messagingSenderId: '338603757091',
+    projectId: 'lifecareplus-e76e9',
+    storageBucket: 'lifecareplus-e76e9.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyDYjt0nxDNw-7WV6Vo5jRUSB94znPuwByo',
-    appId: '1:341393530649:ios:242083a54b78215cf12f88',
-    messagingSenderId: '341393530649',
-    projectId: 'lifecareplus-2c145',
-    storageBucket: 'lifecareplus-2c145.firebasestorage.app',
+    apiKey: 'AIzaSyDuD_FXzRkkDvmnquSC6pDfZzngF_IE4P0',
+    appId: '1:338603757091:ios:b68820aae9ba92c5d16b96',
+    messagingSenderId: '338603757091',
+    projectId: 'lifecareplus-e76e9',
+    storageBucket: 'lifecareplus-e76e9.firebasestorage.app',
+    androidClientId: '338603757091-80nekvun6von51uukpu4roc88ndrdc1q.apps.googleusercontent.com',
+    iosClientId: '338603757091-tfnrtumci0fbetgdjd8pn5kghvu9qed6.apps.googleusercontent.com',
     iosBundleId: 'com.example.lifecareplus',
   );
+
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyDtPIxnyuT8BkrG5iBYz72Ugx-Wu7knWi4',
+    appId: '1:338603757091:web:003e029dd40fd702d16b96',
+    messagingSenderId: '338603757091',
+    projectId: 'lifecareplus-e76e9',
+    authDomain: 'lifecareplus-e76e9.firebaseapp.com',
+    storageBucket: 'lifecareplus-e76e9.firebasestorage.app',
+    measurementId: 'G-X7R5FGYM4R',
+  );
+
+  static const FirebaseOptions macos = FirebaseOptions(
+    apiKey: 'AIzaSyDuD_FXzRkkDvmnquSC6pDfZzngF_IE4P0',
+    appId: '1:338603757091:ios:b68820aae9ba92c5d16b96',
+    messagingSenderId: '338603757091',
+    projectId: 'lifecareplus-e76e9',
+    storageBucket: 'lifecareplus-e76e9.firebasestorage.app',
+    androidClientId: '338603757091-80nekvun6von51uukpu4roc88ndrdc1q.apps.googleusercontent.com',
+    iosClientId: '338603757091-tfnrtumci0fbetgdjd8pn5kghvu9qed6.apps.googleusercontent.com',
+    iosBundleId: 'com.example.lifecareplus',
+  );
+
+  static const FirebaseOptions windows = FirebaseOptions(
+    apiKey: 'AIzaSyDtPIxnyuT8BkrG5iBYz72Ugx-Wu7knWi4',
+    appId: '1:338603757091:web:66be468c8353fdd1d16b96',
+    messagingSenderId: '338603757091',
+    projectId: 'lifecareplus-e76e9',
+    authDomain: 'lifecareplus-e76e9.firebaseapp.com',
+    storageBucket: 'lifecareplus-e76e9.firebasestorage.app',
+    measurementId: 'G-0NRMZ0CNDQ',
+  );
+
 }

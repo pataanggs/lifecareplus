@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -83,14 +84,51 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _handleSuccessfulLogin(UserCredential userCredential) async {
+    try {
+      // Get SharedPreferences instance
+      final prefs = await SharedPreferences.getInstance();
+
+      // Check if this user has completed onboarding before
+      final String userId = userCredential.user?.uid ?? '';
+      final bool hasCompletedOnboarding =
+          prefs.getBool('${userId}_onboarding_completed') ?? false;
+
+      if (hasCompletedOnboarding) {
+        // User has already completed onboarding before, go directly to home screen
+        if (mounted) {
+          Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+        }
+      } else {
+        // First time login or onboarding not completed, go to onboarding flow
+        if (mounted) {
+          // Navigate to your first onboarding screen (gender selection, etc.)
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            '/onboarding',
+            (route) => false,
+          );
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print("Error handling successful login: $e");
+      }
+      // Fallback to onboarding flow if there's an error
+      if (mounted) {
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/onboarding',
+          (route) => false,
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_authCubit == null) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return BlocProvider.value(
