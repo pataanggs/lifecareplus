@@ -1,3 +1,4 @@
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -6,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '/cubits/medication-reminder/medication_reminder_cubit.dart';
+import '/cubits/medication-stock/medication_stock_cubit.dart';
 import '/widgets/rounded_button.dart';
 import 'add_medication_screen.dart';
 import '/utils/colors.dart';
@@ -22,6 +24,7 @@ class _MedicationReminderScreenState extends State<MedicationReminderScreen> {
   bool _showContent = false;
   String _formattedDate = '';
   MedicationReminderCubit? _medicationCubit;
+  MedicationStockCubit? _stockCubit;
 
   @override
   void initState() {
@@ -36,12 +39,15 @@ class _MedicationReminderScreenState extends State<MedicationReminderScreen> {
     });
 
     _medicationCubit = MedicationReminderCubit();
+    _stockCubit = MedicationStockCubit();
     _medicationCubit?.initialize();
+    _stockCubit?.initialize();
   }
 
   @override
   void dispose() {
     _medicationCubit?.close();
+    _stockCubit?.close();
     super.dispose();
   }
 
@@ -74,14 +80,31 @@ class _MedicationReminderScreenState extends State<MedicationReminderScreen> {
     });
   }
 
+  void _deleteMedication(String medicationId) async {
+    HapticFeedback.mediumImpact();
+    await _stockCubit?.deleteMedication(medicationId);
+    if (mounted) {
+      _medicationCubit?.fetchMedications();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Pengingat obat berhasil dihapus'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (_medicationCubit == null) {
+    if (_medicationCubit == null || _stockCubit == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    return BlocProvider.value(
-      value: _medicationCubit!,
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider.value(value: _medicationCubit!),
+        BlocProvider.value(value: _stockCubit!),
+      ],
       child: BlocConsumer<MedicationReminderCubit, MedicationReminderState>(
         listener: (context, state) {
           if (state is MedicationReminderStateError) {
@@ -89,7 +112,6 @@ class _MedicationReminderScreenState extends State<MedicationReminderScreen> {
               SnackBar(content: Text(state.data.errorMessage ?? 'Error')),
             );
           }
-
         },
         builder: (context, state) {
           return Scaffold(
@@ -274,105 +296,120 @@ class _MedicationReminderScreenState extends State<MedicationReminderScreen> {
     final bool isLowStock = medication['stockReminderEnabled'] == true &&
         (medication['currentStock'] ?? 0) <= (medication['reminderThreshold'] ?? 0);
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      elevation: 4,
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          border: isLowStock
-              ? Border.all(color: Colors.red.shade300, width: 2)
-              : null,
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          medication['name'] ?? 'Nama Obat',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
+    return Slidable(
+      key: ValueKey(medication['id']),
+      endActionPane: ActionPane(
+        motion: const ScrollMotion(),
+        children: [
+          SlidableAction(
+            onPressed: (_) => _deleteMedication(medication['id']),
+            backgroundColor: const Color(0xFFFE4A49),
+            foregroundColor: Colors.white,
+            icon: Icons.delete,
+            label: 'Hapus',
+          ),
+        ],
+      ),
+      child: Card(
+        margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: 4,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: isLowStock
+                ? Border.all(color: Colors.red.shade300, width: 2)
+                : null,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            medication['name'] ?? 'Nama Obat',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
                           ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${medication['dosage']} ${medication['unitType']}',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.textHighlight.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.medication_outlined,
+                        color: AppColors.textHighlight,
+                        size: 24,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                const Divider(),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.access_time,
+                          size: 16,
+                          color: Colors.grey.shade600,
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(width: 4),
                         Text(
-                          '${medication['dosage']} ${medication['unitType']}',
+                          medication['time'] ?? '',
                           style: TextStyle(
-                            fontSize: 14,
                             color: Colors.grey.shade600,
                           ),
                         ),
                       ],
                     ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.textHighlight.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      Icons.medication_outlined,
-                      color: AppColors.textHighlight,
-                      size: 24,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              const Divider(),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.access_time,
-                        size: 16,
-                        color: Colors.grey.shade600,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        medication['time'] ?? '',
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                        ),
+                    if (medication['stockReminderEnabled'] == true) ...[
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.inventory_2_outlined,
+                            size: 16,
+                            color: isLowStock ? Colors.red : Colors.grey.shade600,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Stok: ${medication['currentStock']} ${medication['unitType']}',
+                            style: TextStyle(
+                              color: isLowStock ? Colors.red : Colors.grey.shade600,
+                              fontWeight: isLowStock ? FontWeight.bold : null,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
-                  ),
-                  if (medication['stockReminderEnabled'] == true) ...[
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.inventory_2_outlined,
-                          size: 16,
-                          color: isLowStock ? Colors.red : Colors.grey.shade600,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Stok: ${medication['currentStock']} ${medication['unitType']}',
-                          style: TextStyle(
-                            color: isLowStock ? Colors.red : Colors.grey.shade600,
-                            fontWeight: isLowStock ? FontWeight.bold : null,
-                          ),
-                        ),
-                      ],
-                    ),
                   ],
-                ],
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

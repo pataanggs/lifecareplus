@@ -45,5 +45,25 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Aplikasi membutuhkan akses kamera untuk mengambil foto profil</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Aplikasi membutuhkan akses galeri untuk memilih foto profil</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Aplikasi membutuhkan akses mikrofon untuk fitur voice note</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Aplikasi membutuhkan akses lokasi untuk menampilkan lokasi terdekat</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Aplikasi membutuhkan akses lokasi untuk menampilkan lokasi terdekat</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Aplikasi membutuhkan akses lokasi untuk menampilkan lokasi terdekat</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Aplikasi membutuhkan akses kalender untuk menjadwalkan pengingat</string>
+	<key>NSContactsUsageDescription</key>
+	<string>Aplikasi membutuhkan akses kontak untuk berbagi pengingat</string>
+	<key>NSMotionUsageDescription</key>
+	<string>Aplikasi membutuhkan akses motion untuk mendeteksi aktivitas</string>
+	<key>NSRemindersUsageDescription</key>
+	<string>Aplikasi membutuhkan akses pengingat untuk membuat pengingat obat</string>
 </dict>
 </plist>
