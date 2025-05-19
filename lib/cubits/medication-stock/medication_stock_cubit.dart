@@ -109,7 +109,7 @@ class MedicationStockCubit extends Cubit<MedicationStockState> {
         'userId': uid,
       };
 
-      // Simpan data obat ke Firestore
+      // Simpan data obat ke Firestore terlebih dahulu
       await _firestore
           .collection('users')
           .doc(uid)
@@ -117,35 +117,68 @@ class MedicationStockCubit extends Cubit<MedicationStockState> {
           .doc(medicationId)
           .set(medicationData);
 
-      if (stockReminderEnabled) {
-        await _notificationService.scheduleMedicationReminder(
-          medicationId: medicationId,
-          medicationName: medicationName,
-          time: formattedTime,
-          dosage: dosage,
-          unitType: unitType,
-        );
+      bool reminderSuccess = true;
+      String reminderError = '';
 
-        await _notificationService.scheduleStockReminder(
-          medicationId: medicationId,
-          medicationName: medicationName,
-          currentStock: currentStock,
-          reminderThreshold: reminderThreshold,
-          unitType: unitType,
-        );
+      if (stockReminderEnabled) {
+        try {
+          // Coba setup pengingat obat
+          await _notificationService.scheduleMedicationReminder(
+            medicationId: medicationId,
+            medicationName: medicationName,
+            time: formattedTime,
+            dosage: dosage,
+            unitType: unitType,
+          );
+
+          // Coba setup pengingat stok
+          await _notificationService.scheduleStockReminder(
+            medicationId: medicationId,
+            medicationName: medicationName,
+            currentStock: currentStock,
+            reminderThreshold: reminderThreshold,
+            unitType: unitType,
+          );
+        } catch (notificationError) {
+          // Catat error tapi jangan menghentikan proses
+          reminderSuccess = false;
+          reminderError = notificationError.toString();
+          
+          if (kDebugMode) {
+            print('Gagal mengatur notifikasi: $notificationError');
+          }
+        }
       }
 
+      // Obat sudah disimpan, anggap sukses meskipun ada masalah dengan notifikasi
       final successData = state.data.copyWith(
         isLoading: false,
         isSuccess: true,
       );
       emit(MedicationStockStateSuccess(successData));
+      
+      // Jika ada masalah dengan pengingat, tampilkan pesan setelah redirect
+      if (!reminderSuccess && stockReminderEnabled) {
+        if (kDebugMode) {
+          print('Data obat disimpan, tetapi ada masalah dengan pengingat: $reminderError');
+        }
+      }
     } catch (e) {
       if (kDebugMode) {
-        print('Error saving medication data: $e');
+        print('Error menyimpan data obat: $e');
       }
+      
+      String errorMessage = 'Gagal menyimpan data';
+      
+      // Tambahkan pesan khusus untuk masalah izin alarm
+      if (e.toString().contains('exact_alarm_not_permitted')) {
+        errorMessage = 'Aplikasi membutuhkan izin untuk mengatur alarm. Silakan aktifkan di pengaturan perangkat Anda.';
+      } else {
+        errorMessage = 'Gagal menyimpan data: $e';
+      }
+      
       final errorData = state.data.copyWith(
-        errorMessage: 'Gagal menyimpan data: $e',
+        errorMessage: errorMessage,
         isLoading: false,
       );
       emit(MedicationStockStateError(errorData));

@@ -1,9 +1,9 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:timezone/data/latest.dart' as tz;
-import 'package:timezone/timezone.dart' as tz;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:timezone/data/latest.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
+import 'package:flutter/foundation.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -127,63 +127,115 @@ class NotificationService {
     required String dosage,
     required String unitType,
   }) async {
-    final timeParts = time.split(':');
-    final hour = int.parse(timeParts[0]);
-    final minute = int.parse(timeParts[1]);
+    try {
+      final timeParts = time.split(':');
+      final hour = int.parse(timeParts[0]);
+      final minute = int.parse(timeParts[1]);
 
-    final now = DateTime.now();
-    final scheduledDate = DateTime(
-      now.year,
-      now.month,
-      now.day,
-      hour,
-      minute,
-    );
+      final now = DateTime.now();
+      var scheduledDate = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        hour,
+        minute,
+      );
 
-    if (scheduledDate.isBefore(now)) {
-      scheduledDate.add(const Duration(days: 1));
+      if (scheduledDate.isBefore(now)) {
+        scheduledDate = scheduledDate.add(const Duration(days: 1));
+      }
+
+      final tzDateTime = tz.TZDateTime.from(scheduledDate, tz.local);
+
+      const androidDetails = AndroidNotificationDetails(
+        'medication_reminder',
+        'Pengingat Obat',
+        channelDescription: 'Notifikasi untuk mengingatkan waktu minum obat',
+        importance: Importance.high,
+        priority: Priority.high,
+        enableVibration: true,
+        actions: [
+          AndroidNotificationAction(
+            'TAKE_MEDICATION',
+            'Sudah Diminum',
+            showsUserInterface: true,
+          ),
+        ],
+      );
+
+      const iosDetails = DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+        categoryIdentifier: 'medication_reminder',
+      );
+
+      const details = NotificationDetails(
+        android: androidDetails,
+        iOS: iosDetails,
+      );
+
+      try {
+        await _notifications.zonedSchedule(
+          int.parse(medicationId.hashCode.toString().substring(0, 9)),
+          'Waktunya Minum Obat',
+          'Jangan lupa minum $medicationName $dosage $unitType',
+          tzDateTime,
+          details,
+          payload: medicationId, 
+          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          matchDateTimeComponents: DateTimeComponents.time, 
+        );
+        
+        if (kDebugMode) {
+          print('Berhasil menjadwalkan pengingat dengan exact alarm');
+        }
+      } catch (exactAlarmError) {
+        if (kDebugMode) {
+          print('Gagal menggunakan exact alarm: $exactAlarmError');
+        }
+        
+        try {
+          await _notifications.zonedSchedule(
+            int.parse(medicationId.hashCode.toString().substring(0, 9)),
+            'Waktunya Minum Obat',
+            'Jangan lupa minum $medicationName $dosage $unitType',
+            tzDateTime,
+            details,
+            payload: medicationId,
+            androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+            matchDateTimeComponents: DateTimeComponents.time,
+          );
+          
+          if (kDebugMode) {
+            print('Berhasil menggunakan inexact alarm sebagai fallback');
+          }
+        } catch (inexactAlarmError) {
+          if (kDebugMode) {
+            print('Fallback notifikasi juga gagal: $inexactAlarmError');
+          }
+          
+          try {
+            await _notifications.show(
+              int.parse(medicationId.hashCode.toString().substring(0, 9)),
+              'Informasi Pengingat Obat',
+              'Pengingat untuk obat $medicationName ($dosage $unitType) telah diatur',
+              details,
+            );
+          } catch (showError) {
+            if (kDebugMode) {
+              print('Semua metode notifikasi gagal: $showError');
+            }
+            throw Exception('Gagal menjadwalkan pengingat obat');
+          }
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error di scheduleMedicationReminder: $e');
+      }
+      rethrow; 
     }
-
-    final tzDateTime = tz.TZDateTime.from(scheduledDate, tz.local);
-
-    const androidDetails = AndroidNotificationDetails(
-      'medication_reminder',
-      'Pengingat Obat',
-      channelDescription: 'Notifikasi untuk mengingatkan waktu minum obat',
-      importance: Importance.high,
-      priority: Priority.high,
-      enableVibration: true,
-      actions: [
-        AndroidNotificationAction(
-          'TAKE_MEDICATION',
-          'Sudah Diminum',
-          showsUserInterface: true,
-        ),
-      ],
-    );
-
-    const iosDetails = DarwinNotificationDetails(
-      presentAlert: true,
-      presentBadge: true,
-      presentSound: true,
-      categoryIdentifier: 'medication_reminder',
-    );
-
-    const details = NotificationDetails(
-      android: androidDetails,
-      iOS: iosDetails,
-    );
-
-    await _notifications.zonedSchedule(
-      int.parse(medicationId.hashCode.toString().substring(0, 9)),
-      'Waktunya Minum Obat',
-      'Jangan lupa minum $medicationName $dosage $unitType',
-      tzDateTime,
-      details,
-      payload: medicationId, 
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      matchDateTimeComponents: DateTimeComponents.time, 
-    );
   }
 
   Future<void> scheduleStockReminder({
@@ -194,33 +246,39 @@ class NotificationService {
     required String unitType,
   }) async {
     if (currentStock <= reminderThreshold) {
-      const androidDetails = AndroidNotificationDetails(
-        'stock_reminder',
-        'Pengingat Stok',
-        channelDescription:
-            'Notifikasi untuk mengingatkan stok obat hampir habis',
-        importance: Importance.high,
-        priority: Priority.high,
-        enableVibration: true,
-      );
+      try {
+        const androidDetails = AndroidNotificationDetails(
+          'stock_reminder',
+          'Pengingat Stok',
+          channelDescription:
+              'Notifikasi untuk mengingatkan stok obat hampir habis',
+          importance: Importance.high,
+          priority: Priority.high,
+          enableVibration: true,
+        );
 
-      const iosDetails = DarwinNotificationDetails(
-        presentAlert: true,
-        presentBadge: true,
-        presentSound: true,
-      );
+        const iosDetails = DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        );
 
-      const details = NotificationDetails(
-        android: androidDetails,
-        iOS: iosDetails,
-      );
+        const details = NotificationDetails(
+          android: androidDetails,
+          iOS: iosDetails,
+        );
 
-      await _notifications.show(
-        int.parse(medicationId.hashCode.toString().substring(0, 9)) + 1,
-        'Stok Obat Hampir Habis',
-        'Stok $medicationName tinggal $currentStock $unitType. Segera isi ulang persediaan obat Anda.',
-        details,
-      );
+        await _notifications.show(
+          int.parse(medicationId.hashCode.toString().substring(0, 9)) + 1,
+          'Stok Obat Hampir Habis',
+          'Stok $medicationName tinggal $currentStock $unitType. Segera isi ulang persediaan obat Anda.',
+          details,
+        );
+      } catch (e) {
+        if (kDebugMode) {
+          print('Gagal menampilkan notifikasi stok: $e');
+        }
+      }
     }
   }
 
