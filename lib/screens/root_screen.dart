@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'profile_screen.dart';
 import 'home_screen.dart';
 
 class RootScreen extends StatefulWidget {

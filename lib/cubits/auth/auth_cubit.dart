@@ -9,7 +9,7 @@ class AuthCubit extends Cubit<AuthState> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final SharedPreferences _prefs;
 
-  var data = AuthStateData();
+  var data = const AuthStateData();
 
   AuthCubit(this._prefs) : super(const AuthStateInitial()) {
     _auth.authStateChanges().listen((User? user) {
@@ -40,40 +40,49 @@ class AuthCubit extends Cubit<AuthState> {
         password: password,
       );
 
-      // Save user credentials
-      if (userCredential.user != null) {
-        await _prefs.setString('user_email', email);
-        await _prefs.setString('user_uid', userCredential.user!.uid);
-        await _prefs.setBool('is_logged_in', true);
-      }
+      final user = userCredential.user;
+      if (user == null) throw Exception('Login gagal: user tidak ditemukan');
+
+      await _prefs.setString('user_email', email);
+      await _prefs.setString('user_uid', user.uid);
+      await _prefs.setBool('is_logged_in', true);
 
       data = data.copyWith(
-        uid: userCredential.user!.uid,
-        email: userCredential.user!.email,
-        displayName: userCredential.user!.displayName,
-        photoURL: userCredential.user!.photoURL,
-        isEmailVerified: userCredential.user!.emailVerified,
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+        photoURL: user.photoURL,
+        isEmailVerified: user.emailVerified,
         isLoggedIn: true,
       );
       
       emit(AuthStateLoaded(data));
     } on FirebaseAuthException catch (e) {
-      String message = 'An error occurred';
-      if (e.code == 'user-not-found') {
-        message = 'No user found for that email.';
-      } else if (e.code == 'wrong-password') {
-        message = 'Wrong password provided.';
-      } else if (e.code == 'invalid-email') {
-        message = 'The email address is invalid.';
-      } else if (e.code == 'user-disabled') {
-        message = 'This user has been disabled.';
+      String message;
+      switch (e.code) {
+        case 'user-not-found':
+          message = 'Email tidak terdaftar';
+          break;
+        case 'wrong-password':
+          message = 'Password salah';
+          break;
+        case 'invalid-email':
+          message = 'Format email tidak valid';
+          break;
+        case 'user-disabled':
+          message = 'Akun telah dinonaktifkan';
+          break;
+        default:
+          message = 'Terjadi kesalahan: ${e.message}';
       }
       emit(AuthStateFailure(data));
       throw message;
+    } catch (e) {
+      emit(AuthStateFailure(data));
+      throw Exception('Terjadi kesalahan saat login: ${e.toString()}');
     }
   }
 
-  // Create user with email and password
   Future<void> createUserWithEmailAndPassword({
     required String email,
     required String password,
@@ -85,7 +94,6 @@ class AuthCubit extends Cubit<AuthState> {
         password: password,
       );
 
-      // Save user credentials
       if (userCredential.user != null) {
         await _prefs.setString('user_email', email);
         await _prefs.setString('user_uid', userCredential.user!.uid);
