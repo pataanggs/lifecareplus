@@ -1,9 +1,9 @@
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:lifecareplus/cubits/medication-stock/medication_stock_cubit.dart';
 
+import '/cubits/medication-stock/medication_stock_cubit.dart';
 import 'medication_summary_screen.dart';
 import '/widgets/rounded_button.dart';
 import '/utils/colors.dart';
@@ -45,6 +45,38 @@ class _MedicationStockScreenState extends State<MedicationStockScreen> {
 
     _cubit = MedicationStockCubit();
     _cubit?.initialize();
+    
+    // show dialog information about alarm permission
+    _showAlarmInfoIfNeeded();
+  }
+  
+  void _showAlarmInfoIfNeeded() {
+    // for android 12+
+    if (mounted) {
+      Future.delayed(const Duration(milliseconds: 800), () {
+        _showAlarmPermissionInfo();
+      });
+    }
+  }
+  
+  void _showAlarmPermissionInfo() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Penting'),
+        content: const Text(
+          'Untuk pengingat obat yang akurat, pastikan izin "Pengaturan Alarm" atau '
+          '"Alarm & Reminder" diaktifkan. Anda dapat mengaturnya di '
+          'Pengaturan > Aplikasi > LifeCarePlus > Izin.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Saya Mengerti'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
