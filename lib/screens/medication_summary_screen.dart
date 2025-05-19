@@ -1,11 +1,11 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../services/mock_medication_service.dart';
-import '../utils/colors.dart';
-import '../utils/show_snackbar.dart';
-import '../widgets/rounded_button.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter/material.dart';
+
+import '/cubits/medication-summary/medication_summary_cubit.dart';
 import 'medication_reminder_screen.dart';
+import '/widgets/rounded_button.dart';
+import '/utils/colors.dart';
 
 class MedicationSummaryScreen extends StatefulWidget {
   final String medicationName;
@@ -36,8 +36,7 @@ class MedicationSummaryScreen extends StatefulWidget {
 
 class _MedicationSummaryScreenState extends State<MedicationSummaryScreen> {
   bool _showContent = false;
-  bool _isLoading = false;
-  final MockMedicationService _medicationService = MockMedicationService();
+  MedicationSummaryCubit? _medicationSummaryCubit;
 
   @override
   void initState() {
@@ -45,359 +44,321 @@ class _MedicationSummaryScreenState extends State<MedicationSummaryScreen> {
     Future.delayed(const Duration(milliseconds: 100), () {
       if (mounted) setState(() => _showContent = true);
     });
+
+    _medicationSummaryCubit = MedicationSummaryCubit();
+    _medicationSummaryCubit?.initialize();
   }
 
-  void _finishSetup() async {
-    HapticFeedback.mediumImpact();
-
-    setState(() => _isLoading = true);
-
-    try {
-      // Save medication data to local storage
-      await _medicationService.addMedication(
-        name: widget.medicationName,
-        frequency: widget.frequency,
-        time: widget.time,
-        dosage: widget.dosage,
-        stockReminderEnabled: widget.stockReminderEnabled,
-        currentStock: widget.currentStock,
-        reminderThreshold: widget.reminderThreshold,
-        unitType: widget.unitType,
-      );
-
-      if (mounted) {
-        // Show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Pengingat obat berhasil disimpan'),
-            backgroundColor: Colors.green,
-          ),
-        );
-
-        // Navigate back to the medication reminder screen
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const MedicationReminderScreen()),
-          (route) => false,
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        showSnackBar(
-          context,
-          'Gagal menyimpan pengingat obat. Coba lagi nanti.',
-        );
-        debugPrint('Error saving medication: $e');
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
+  @override
+  void dispose() {
+    _medicationSummaryCubit?.close();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      resizeToAvoidBottomInset: true,
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color(0xFF05606B), // Teal at top
-              Color(0xFF88C1D0), // Light blue in middle
-              Color(0xFFB5D8E2), // Lighter blue at bottom
-            ],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            stops: [0.0, 0.3, 1.0],
-          ),
+    if (_medicationSummaryCubit == null) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.textHighlight),
         ),
-        child: AnimatedOpacity(
-          opacity: _showContent ? 1.0 : 0.0,
-          duration: const Duration(milliseconds: 300),
-          child: SafeArea(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    physics: const ClampingScrollPhysics(),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          const SizedBox(height: 16),
+      );
+    }
 
-                          // Header with profile and greeting
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              // Greeting text
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                        'Hi, Asavira',
-                                        style: TextStyle(
-                                          fontSize: 26,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white.withOpacity(0.9),
-                                        ),
-                                      )
-                                      .animate(delay: 100.ms)
-                                      .fadeIn(duration: 400.ms),
-
-                                  const SizedBox(height: 4),
-
-                                  // Get current date in Indonesian format
-                                  Text(
-                                        _getFormattedDate(),
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
-                                          color: Colors.white.withOpacity(0.7),
-                                        ),
-                                      )
-                                      .animate(delay: 200.ms)
-                                      .fadeIn(duration: 400.ms),
-                                ],
-                              ),
-
-                              // Profile icon
-                              Container(
-                                width: 48,
-                                height: 48,
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.person_outline_rounded,
-                                  color: Colors.white,
-                                  size: 28,
-                                ),
-                              ).animate(delay: 200.ms).fadeIn(duration: 400.ms),
-                            ],
-                          ),
-
-                          const SizedBox(height: 40),
-
-                          // Success Icon
-                          Container(
-                                width: 120,
-                                height: 120,
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.1),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: const Icon(
-                                  Icons.check_circle,
-                                  size: 80,
-                                  color: Color(0xFF05606B),
-                                ),
-                              )
-                              .animate(delay: 300.ms)
-                              .fadeIn(duration: 600.ms)
-                              .scale(
-                                begin: const Offset(0.7, 0.7),
-                                end: const Offset(1.0, 1.0),
-                                duration: 600.ms,
-                                curve: Curves.elasticOut,
-                              ),
-
-                          const SizedBox(height: 30),
-
-                          // Success Text
-                          Text(
-                            'Pengingat Berhasil Dibuat',
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ).animate(delay: 500.ms).fadeIn(duration: 400.ms),
-
-                          const SizedBox(height: 40),
-
-                          // Summary Card
-                          Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.all(20),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(16),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.08),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+    return BlocProvider.value(
+      value: _medicationSummaryCubit!,
+      child: Scaffold(
+        resizeToAvoidBottomInset: true,
+        body: BlocBuilder<MedicationSummaryCubit, MedicationSummaryState>(
+          builder: (context, state) {
+            return Container(
+              width: double.infinity,
+              height: double.infinity,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Color(0xFF05606B),
+                    Color(0xFF88C1D0),
+                    Color(0xFFB5D8E2),
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  stops: [0.0, 0.3, 1.0],
+                ),
+              ),
+              child: AnimatedOpacity(
+                opacity: _showContent ? 1.0 : 0.0,
+                duration: const Duration(milliseconds: 300),
+                child: SafeArea(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: SingleChildScrollView(
+                          physics: const ClampingScrollPhysics(),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                const SizedBox(height: 16),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
-                                    // Medication Title
-                                    Text(
-                                      widget.medicationName,
-                                      style: const TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold,
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                              'Hi, ${state.data.nickname}',
+                                              style: TextStyle(
+                                                fontSize: 26,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.white.withValues(
+                                                  alpha: 0.9,
+                                                ),
+                                              ),
+                                            )
+                                            .animate(delay: 100.ms)
+                                            .fadeIn(duration: 400.ms),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                              state.data.formattedDate,
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w500,
+                                                color: Colors.white.withValues(
+                                                  alpha: 0.7,
+                                                ),
+                                              ),
+                                            )
+                                            .animate(delay: 200.ms)
+                                            .fadeIn(duration: 400.ms),
+                                      ],
+                                    ),
+                                    Container(
+                                          width: 48,
+                                          height: 48,
+                                          decoration: BoxDecoration(
+                                            color: Colors.white.withValues(
+                                              alpha: .2,
+                                            ),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(
+                                            Icons.person_outline_rounded,
+                                            color: Colors.white,
+                                            size: 28,
+                                          ),
+                                        )
+                                        .animate(delay: 200.ms)
+                                        .fadeIn(duration: 400.ms),
+                                  ],
+                                ),
+                                const SizedBox(height: 40),
+                                Container(
+                                      width: 120,
+                                      height: 120,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        shape: BoxShape.circle,
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withValues(
+                                              alpha: .1,
+                                            ),
+                                            blurRadius: 10,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ],
+                                      ),
+                                      child: const Icon(
+                                        Icons.check_circle,
+                                        size: 80,
                                         color: Color(0xFF05606B),
                                       ),
+                                    )
+                                    .animate(delay: 300.ms)
+                                    .fadeIn(duration: 600.ms)
+                                    .scale(
+                                      begin: const Offset(0.7, 0.7),
+                                      end: const Offset(1.0, 1.0),
+                                      duration: 600.ms,
+                                      curve: Curves.elasticOut,
                                     ),
 
-                                    const SizedBox(height: 16),
-                                    const Divider(
-                                      height: 1,
-                                      color: Color(0xFFEAEAEA),
-                                    ),
-                                    const SizedBox(height: 16),
-
-                                    // Medication Details
-                                    _buildDetailRow(
-                                      label: 'Frekuensi',
-                                      value: widget.frequency,
-                                      delay: 700,
-                                    ),
-
-                                    const SizedBox(height: 12),
-
-                                    _buildDetailRow(
-                                      label: 'Waktu',
-                                      value: widget.time,
-                                      delay: 800,
-                                    ),
-
-                                    const SizedBox(height: 12),
-
-                                    _buildDetailRow(
-                                      label: 'Dosis',
-                                      value: widget.dosage,
-                                      delay: 900,
-                                    ),
-
-                                    if (widget.stockReminderEnabled) ...[
-                                      const SizedBox(height: 16),
-                                      const Divider(
-                                        height: 1,
-                                        color: Color(0xFFEAEAEA),
+                                const SizedBox(height: 30),
+                                const Text(
+                                      'Pengingat Berhasil Dibuat',
+                                      style: TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
                                       ),
-                                      const SizedBox(height: 16),
-
-                                      // Stock reminder details
-                                      Column(
+                                    )
+                                    .animate(delay: 500.ms)
+                                    .fadeIn(duration: 400.ms),
+                                const SizedBox(height: 40),
+                                Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.all(20),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(16),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withValues(
+                                              alpha: .08,
+                                            ),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Column(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            'Pengingat Stok',
-                                            style: TextStyle(
-                                              fontSize: 18,
+                                            widget.medicationName,
+                                            style: const TextStyle(
+                                              fontSize: 20,
                                               fontWeight: FontWeight.bold,
-                                              color: Colors.grey.shade700,
+                                              color: Color(0xFF05606B),
                                             ),
                                           ),
-
-                                          const SizedBox(height: 12),
-
-                                          _buildDetailRow(
-                                            label: 'Stok Saat Ini',
-                                            value:
-                                                '${widget.currentStock} ${widget.unitType}',
-                                            delay: 1000,
-                                            valueColor: const Color(0xFF9C4380),
+                                          const SizedBox(height: 16),
+                                          const Divider(
+                                            height: 1,
+                                            color: Color(0xFFEAEAEA),
                                           ),
-
-                                          const SizedBox(height: 12),
-
+                                          const SizedBox(height: 16),
                                           _buildDetailRow(
-                                            label: 'Notifikasi Pada',
-                                            value:
-                                                '${widget.reminderThreshold} ${widget.unitType}',
-                                            delay: 1100,
-                                            valueColor: const Color(0xFF9C4380),
+                                            label: 'Frekuensi',
+                                            value: widget.frequency,
+                                            delay: 700,
                                           ),
+                                          const SizedBox(height: 12),
+                                          _buildDetailRow(
+                                            label: 'Waktu',
+                                            value: widget.time,
+                                            delay: 800,
+                                          ),
+                                          const SizedBox(height: 12),
+                                          _buildDetailRow(
+                                            label: 'Dosis',
+                                            value: widget.dosage,
+                                            delay: 900,
+                                          ),
+                                          if (widget.stockReminderEnabled) ...[
+                                            const SizedBox(height: 16),
+                                            const Divider(
+                                              height: 1,
+                                              color: Color(0xFFEAEAEA),
+                                            ),
+                                            const SizedBox(height: 16),
+                                            Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  'Pengingat Stok',
+                                                  style: TextStyle(
+                                                    fontSize: 18,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.grey.shade700,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 12),
+                                                _buildDetailRow(
+                                                  label: 'Stok Saat Ini',
+                                                  value:
+                                                      '${widget.currentStock} ${widget.unitType}',
+                                                  delay: 1000,
+                                                  valueColor: const Color(
+                                                    0xFF9C4380,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 12),
+                                                _buildDetailRow(
+                                                  label: 'Notifikasi Pada',
+                                                  value:
+                                                      '${widget.reminderThreshold} ${widget.unitType}',
+                                                  delay: 1100,
+                                                  valueColor: const Color(
+                                                    0xFF9C4380,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
                                         ],
                                       ),
-                                    ],
-                                  ],
-                                ),
-                              )
-                              .animate(delay: 600.ms)
-                              .fadeIn(duration: 500.ms)
-                              .slideY(
-                                begin: 0.1,
-                                end: 0,
-                                duration: 500.ms,
-                                curve: Curves.easeOutQuad,
-                              ),
-
-                          const SizedBox(height: 40),
-
-                          // Preview Text
-                          Text(
-                            'Anda akan mendapatkan notifikasi pada waktu yang telah ditentukan.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.white.withOpacity(0.9),
-                              height: 1.5,
+                                    )
+                                    .animate(delay: 600.ms)
+                                    .fadeIn(duration: 500.ms)
+                                    .slideY(
+                                      begin: 0.1,
+                                      end: 0,
+                                      duration: 500.ms,
+                                      curve: Curves.easeOutQuad,
+                                    ),
+                                const SizedBox(height: 40),
+                                Text(
+                                  'Anda akan mendapatkan notifikasi pada waktu yang telah ditentukan.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.white.withValues(alpha: .9),
+                                    height: 1.5,
+                                  ),
+                                ).animate(delay: 1200.ms).fadeIn(duration: 400.ms),
+                                const SizedBox(height: 30),
+                              ],
                             ),
-                          ).animate(delay: 1200.ms).fadeIn(duration: 400.ms),
-
-                          const SizedBox(height: 30),
-                        ],
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                ),
-
-                // Continue button
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 16,
-                  ),
-                  child:
-                      _isLoading
-                          ? const Center(
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 16,
+                        ),
+                        child: RoundedButton(
+                              text: 'Kembali ke Halaman Utama',
+                              onPressed: () {
+                                Navigator.of(context).pushAndRemoveUntil(
+                                  MaterialPageRoute(
+                                    builder: (_) {
+                                      return const MedicationReminderScreen();
+                                    },
+                                  ),
+                                  (route) => false,
+                                );
+                              },
+                              color: AppColors.textHighlight,
+                              textColor: Colors.black,
+                              width: 300,
+                              height: 50,
+                              borderRadius: 25,
+                              elevation: 3,
+                            )
+                            .animate(delay: 1300.ms)
+                            .fadeIn(duration: 600.ms, curve: Curves.easeOut)
+                            .slideY(
+                              begin: 0.3,
+                              end: 0,
+                              duration: 600.ms,
+                              curve: Curves.easeOutQuad,
                             ),
-                          )
-                          : RoundedButton(
-                                text: 'Kembali ke Halaman Utama',
-                                onPressed: _finishSetup,
-                                color: AppColors.textHighlight,
-                                textColor: Colors.black,
-                                width: 300,
-                                height: 50,
-                                borderRadius: 25,
-                                elevation: 3,
-                              )
-                              .animate(delay: 1300.ms)
-                              .fadeIn(duration: 600.ms, curve: Curves.easeOut)
-                              .slideY(
-                                begin: 0.3,
-                                end: 0,
-                                duration: 600.ms,
-                                curve: Curves.easeOutQuad,
-                              ),
+                      ),
+                    ],
+                  ),
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         ),
       ),
     );
