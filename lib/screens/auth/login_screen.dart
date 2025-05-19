@@ -42,9 +42,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     SharedPreferences.getInstance().then((prefs) {
       if (mounted) {
-        setState(() {
-          _authCubit = AuthCubit(prefs);
-        });
+        _authCubit = AuthCubit(prefs);
       }
     });
   }

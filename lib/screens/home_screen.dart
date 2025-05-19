@@ -44,9 +44,10 @@ class _HomeScreenState extends State<HomeScreen> {
       // Initialize HomeCubit
       final prefs = await SharedPreferences.getInstance();
       if (mounted) {
+        _homeCubit = HomeCubit(prefs);
+        _homeCubit?.initProceed();
+        
         setState(() {
-          _homeCubit = HomeCubit(prefs);
-          _homeCubit?.initProceed();
           _isInitialized = true;
         });
       }
