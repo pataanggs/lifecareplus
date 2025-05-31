@@ -7,8 +7,7 @@ class ArticleWebViewScreen extends StatefulWidget {
   final String url;
   final String title;
 
-  const ArticleWebViewScreen({Key? key, required this.url, required this.title})
-    : super(key: key);
+  const ArticleWebViewScreen({super.key, required this.url, required this.title});
 
   @override
   State<ArticleWebViewScreen> createState() => _ArticleWebViewScreenState();
@@ -58,10 +57,25 @@ class _ArticleWebViewScreenState extends State<ArticleWebViewScreen> {
               onWebResourceError: (WebResourceError error) {
                 if (kDebugMode) {
                   print(
-                    "WebView error (${error.errorCode}): ${error.description}",
+                    "WebView error (${error.errorCode}): ${error.description} " +
+                    "URL: ${error.url} " + // What URL is failing?
+                    "isForMainFrame: ${error.isForMainFrame}" // Is it the main page or a sub-resource?
                   );
                 }
-                _handleError(error);
+                // Decide if this error should trigger the full error screen
+                // Only show full error for main frame errors or critical ones.
+                if (error.isForMainFrame ?? false) { // Default to false if isForMainFrame is null (older webview_flutter versions)
+                    _handleError(error);
+                } else if (error.errorCode == -6) {
+                    // Optionally, still handle connection refused for sub-resources if you deem them critical
+                    // or just log them without showing the full error screen for a better user experience.
+                    // For now, let's assume only main frame errors trigger your full error UI.
+                    if (kDebugMode) {
+                      print("A sub-resource failed to load: ${error.url} with error ${error.errorCode}");
+                    }
+                } else {
+                  _handleError(error); // Handle other errors as before if needed
+                }
               },
             ),
           )

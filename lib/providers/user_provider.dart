@@ -53,8 +53,8 @@ class UserProvider with ChangeNotifier {
     String? phone,
     String? gender,
     int? age,
-    int? height,
-    int? weight,
+    double? height,
+    double? weight,
     String? profileImageUrl,
   }) async {
     if (!isLoggedIn || _user == null) return false;
@@ -86,7 +86,7 @@ class UserProvider with ChangeNotifier {
       );
 
       // Update in storage
-      await _authService.updateUserProfile(_user!.id, updatedUser);
+      await _authService.updateUserProfile(_user!.id, updatedUser as Map<String, dynamic>);
 
       // Update local state
       _user = updatedUser;

@@ -55,7 +55,7 @@ class AuthCubit extends Cubit<AuthState> {
         isEmailVerified: user.emailVerified,
         isLoggedIn: true,
       );
-      
+
       emit(AuthStateLoaded(data));
     } on FirebaseAuthException catch (e) {
       String message;
@@ -108,7 +108,7 @@ class AuthCubit extends Cubit<AuthState> {
         isEmailVerified: userCredential.user!.emailVerified,
         isLoggedIn: true,
       );
-      
+
       emit(AuthStateLoaded(data));
     } on FirebaseAuthException catch (e) {
       String message = 'An error occurred';

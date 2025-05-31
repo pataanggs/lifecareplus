@@ -52,7 +52,7 @@ class AuthService {
     }
   }
 
-  // Create user profile
+  // Create user profile in both Firestore and local storage
   Future<void> createUserProfile({
     required String uid,
     required String fullName,
@@ -61,8 +61,8 @@ class AuthService {
     required String phone,
     required String gender,
     required int age,
-    required int height,
-    required int weight,
+    required double height, // Changed to double to match UserModel
+    required double weight, // Changed to double
     String? profileImageUrl,
   }) async {
     try {
@@ -82,29 +82,101 @@ class AuthService {
         updatedAt: now,
       );
 
+      // Save to Firestore
+      await _firestore.collection('users').doc(uid).set(user.toMap());
+      developer.log('User profile created in Firestore for UID: $uid');
+
+      // Also save to local storage for offline access
       await _storage.saveUser(user);
-    } catch (e) {
+      developer.log('User profile cached in local storage');
+    } catch (e, stackTrace) {
       developer.log('Error creating user profile: $e');
+      developer.log('Stack trace: $stackTrace');
       rethrow;
     }
   }
 
-  // Get user profile
+  // Get user profile from Firestore with fallback to local storage
   Future<UserModel?> getUserProfile(String uid) async {
     try {
-      return await _storage.getUserById(uid);
-    } catch (e) {
-      developer.log('Error getting user profile: $e');
-      return null;
+      // Try to get from Firestore first
+      DocumentSnapshot userDoc =
+          await _firestore.collection('users').doc(uid).get();
+
+      if (userDoc.exists) {
+        developer.log('User profile found in Firestore for UID: $uid');
+        Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>;
+        UserModel user = UserModel.fromMap(data, uid);
+
+        // Update local storage cache
+        await _storage.saveUser(user);
+
+        return user;
+      } else {
+        developer.log(
+          'User profile not found in Firestore, checking local storage',
+        );
+        // Fallback to local storage
+        return await _storage.getUserById(uid);
+      }
+    } catch (e, stackTrace) {
+      developer.log('Error fetching user profile from Firestore: $e');
+      developer.log('Stack trace: $stackTrace');
+
+      // Try local storage as last resort
+      try {
+        return await _storage.getUserById(uid);
+      } catch (localError) {
+        developer.log(
+          'Error fetching user profile from local storage: $localError',
+        );
+        return null;
+      }
     }
   }
 
-  // Update user profile
-  Future<void> updateUserProfile(String uid, UserModel user) async {
+  // Update user profile in both Firestore and local storage
+  Future<void> updateUserProfile(
+    String uid,
+    Map<String, dynamic> updates,
+  ) async {
     try {
-      await _storage.saveUser(user);
-    } catch (e) {
+      // First get current profile to ensure we have a complete model
+      UserModel? currentProfile = await getUserProfile(uid);
+      if (currentProfile == null) {
+        throw Exception('Cannot update profile: User not found');
+      }
+
+      // Create updated model
+      UserModel updatedProfile = UserModel(
+        id: currentProfile.id,
+        fullName: updates['fullName'] ?? currentProfile.fullName,
+        nickname: updates['nickname'] ?? currentProfile.nickname,
+        email: updates['email'] ?? currentProfile.email,
+        phone: updates['phone'] ?? currentProfile.phone,
+        gender: updates['gender'] ?? currentProfile.gender,
+        age: updates['age'] ?? currentProfile.age,
+        height:
+            (updates['height'] as num?)?.toDouble() ?? currentProfile.height,
+        weight:
+            (updates['weight'] as num?)?.toDouble() ?? currentProfile.weight,
+        profileImageUrl:
+            updates['profileImageUrl'] ?? currentProfile.profileImageUrl,
+        createdAt: currentProfile.createdAt,
+        updatedAt: DateTime.now(),
+      );
+
+      // Update Firestore
+      Map<String, dynamic> updateData = updatedProfile.toMap();
+      await _firestore.collection('users').doc(uid).update(updateData);
+      developer.log('User profile updated in Firestore for UID: $uid');
+
+      // Update local storage
+      await _storage.saveUser(updatedProfile);
+      developer.log('User profile updated in local storage');
+    } catch (e, stackTrace) {
       developer.log('Error updating user profile: $e');
+      developer.log('Stack trace: $stackTrace');
       rethrow;
     }
   }
@@ -151,18 +223,50 @@ class AuthService {
     }
   }
 
+  // Get current user profile - optimized implementation
   Future<UserModel?> getCurrentUserProfile() async {
-    User? currentUser = _firebaseAuth.currentUser;
-    if (currentUser == null) return null;
-
-    DocumentSnapshot userDoc =
-        await _firestore.collection('users').doc(currentUser.uid).get();
-
-    if (userDoc.exists) {
-      Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>;
-      return UserModel.fromMap(data, currentUser.uid);
+    User? firebaseUser = _firebaseAuth.currentUser;
+    if (firebaseUser == null) {
+      developer.log('getCurrentUserProfile: No user logged in');
+      return null;
     }
 
-    return null;
+    String uid = firebaseUser.uid;
+    try {
+      developer.log('getCurrentUserProfile: Fetching profile for UID: $uid');
+
+      // Try Firestore first
+      DocumentSnapshot userDoc =
+          await _firestore.collection('users').doc(uid).get();
+
+      if (userDoc.exists) {
+        developer.log('getCurrentUserProfile: Document found in Firestore');
+        Map<String, dynamic> data = userDoc.data() as Map<String, dynamic>;
+        UserModel user = UserModel.fromMap(data, uid);
+
+        // Update local cache
+        await _storage.saveUser(user);
+
+        return user;
+      } else {
+        developer.log(
+          'getCurrentUserProfile: Document not found in Firestore, checking local storage',
+        );
+        return await _storage.getUserById(uid);
+      }
+    } catch (e, stackTrace) {
+      developer.log('getCurrentUserProfile: Error fetching from Firestore: $e');
+      developer.log('Stack trace: $stackTrace');
+
+      // Fallback to local storage
+      try {
+        return await _storage.getUserById(uid);
+      } catch (localError) {
+        developer.log(
+          'getCurrentUserProfile: Also failed to fetch from local storage: $localError',
+        );
+        return null;
+      }
+    }
   }
 }

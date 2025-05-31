@@ -116,7 +116,7 @@ class MockMedicationService {
       medications[index]['isActive'] = isActive;
       medications[index]['updatedAt'] = DateTime.now().millisecondsSinceEpoch;
 
-      await _saveMedicationsToStorage(medications);
+      await _saveMedicationsToStorage(medications);   
     }
   }
 

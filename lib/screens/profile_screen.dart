@@ -144,14 +144,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         phone: phoneController.text,
         gender: _user!.gender,
         age: int.tryParse(ageController.text) ?? _user!.age,
-        height: int.tryParse(heightController.text) ?? _user!.height,
-        weight: int.tryParse(weightController.text) ?? _user!.weight,
+        height: double.tryParse(heightController.text) ?? _user!.height,
+        weight: double.tryParse(weightController.text) ?? _user!.weight,
         profileImageUrl: profileImageUrl,
         createdAt: _user!.createdAt,
         updatedAt: DateTime.now(),
       );
 
-      await _authService.updateUserProfile(_user!.id, updatedUser);
+      await _authService.updateUserProfile(_user!.id, updatedUser as Map<String, dynamic>);
       if (!mounted) return;
       showSnackBar(context, 'Profil berhasil diperbarui');
     } catch (e) {
