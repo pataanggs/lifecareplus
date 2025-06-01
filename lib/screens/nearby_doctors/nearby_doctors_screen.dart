@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class NearbyDoctorsScreen extends StatefulWidget {
   const NearbyDoctorsScreen({super.key});
@@ -148,62 +149,139 @@ class _NearbyDoctorsScreenState extends State<NearbyDoctorsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Dokter Terdekat'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.my_location),
-            onPressed: _getCurrentLocation,
+      extendBodyBehindAppBar: true,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(70),
+        child: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF05606B), Color(0xFF4FC3F7)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+            boxShadow: [
+              BoxShadow(
+                color: Color(0x3305606B),
+                blurRadius: 12,
+                offset: Offset(0, 4),
+              ),
+            ],
           ),
-        ],
+          child: SafeArea(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+                const Text(
+                  'Dokter Terdekat',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.my_location, color: Colors.white),
+                  onPressed: _getCurrentLocation,
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
       body:
           _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : _currentPosition == null
               ? Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      Icons.location_off,
-                      size: 80,
-                      color: Colors.grey.shade400,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      _errorMessage ?? 'Lokasi tidak tersedia',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w500,
+                    SizedBox(
+                      width: 60,
+                      height: 60,
+                      child: CircularProgressIndicator(
+                        color: const Color(0xFF4FC3F7),
+                        strokeWidth: 4,
                       ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Pastikan GPS Anda aktif dan izin lokasi diizinkan',
-                      style: TextStyle(color: Colors.grey.shade600),
-                      textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 24),
-                    ElevatedButton.icon(
-                      onPressed: _getCurrentLocation,
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Coba Lagi'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF05606B),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 12,
-                        ),
+                    const Text(
+                      'Mencari lokasi Anda...',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Color(0xFF05606B),
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
                 ),
+              )
+              : _currentPosition == null
+              ? Center(
+                child: Card(
+                  margin: const EdgeInsets.symmetric(horizontal: 32),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  elevation: 8,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 32,
+                      horizontal: 24,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.location_off,
+                          size: 80,
+                          color: const Color(0xFF4FC3F7).withOpacity(0.25),
+                        ),
+                        const SizedBox(height: 18),
+                        Text(
+                          _errorMessage ?? 'Lokasi tidak tersedia',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF05606B),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Pastikan GPS Anda aktif dan izin lokasi diizinkan',
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 15,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 28),
+                        ElevatedButton.icon(
+                          onPressed: _getCurrentLocation,
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Coba Lagi'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF4FC3F7),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 28,
+                              vertical: 14,
+                            ),
+                            elevation: 2,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0),
               )
               : Stack(
                 children: [
@@ -224,13 +302,61 @@ class _NearbyDoctorsScreenState extends State<NearbyDoctorsScreen> {
                     zoomControlsEnabled: false,
                     mapToolbarEnabled: false,
                   ),
+                  if (_markers.length > 1)
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 90,
+                      child: Center(
+                        child: Card(
+                              elevation: 8,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                              color: Colors.white,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                  vertical: 16,
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(
+                                      Icons.local_hospital,
+                                      color: Color(0xFF4FC3F7),
+                                      size: 28,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Text(
+                                      'Terdapat ${_markers.length - 1} fasilitas kesehatan di sekitar Anda',
+                                      style: const TextStyle(
+                                        color: Color(0xFF05606B),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
+                            .animate()
+                            .fadeIn(duration: 400.ms)
+                            .slideY(begin: 0.1, end: 0),
+                      ),
+                    ),
                   Positioned(
-                    bottom: 16,
-                    right: 16,
+                    bottom: 24,
+                    right: 24,
                     child: FloatingActionButton(
                       onPressed: _getCurrentLocation,
-                      backgroundColor: const Color(0xFF05606B),
-                      child: const Icon(Icons.my_location),
+                      backgroundColor: const Color(0xFF4FC3F7),
+                      foregroundColor: Colors.white,
+                      elevation: 6,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Icon(Icons.my_location, size: 28),
                     ),
                   ),
                 ],

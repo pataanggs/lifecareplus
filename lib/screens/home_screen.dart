@@ -566,20 +566,72 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8.0),
-            child: Text(
-              'Artikel Kesehatan',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          // Gradient header for section title
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF05606B), Color(0xFF4FC3F7)],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Artikel Kesehatan',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+                // Optionally add a "See All" button
+                // TextButton(
+                //   onPressed: () {},
+                //   child: const Text('Lihat Semua', style: TextStyle(color: Colors.white)),
+                // ),
+              ],
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
 
           _isLoadingArticles
-              ? const Center(
+              ? Center(
                 child: Padding(
-                  padding: EdgeInsets.all(20.0),
-                  child: CircularProgressIndicator(),
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    children: [
+                      SizedBox(
+                        width: 48,
+                        height: 48,
+                        child: CircularProgressIndicator(
+                          color: const Color(0xFF4FC3F7),
+                          strokeWidth: 4,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Memuat artikel...',
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: Color(0xFF05606B),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               )
               : Column(
@@ -588,16 +640,19 @@ class _HomeScreenState extends State<HomeScreen> {
                       final index = entry.key;
                       final article = entry.value;
                       return Padding(
-                        padding: const EdgeInsets.only(bottom: 16.0),
+                        padding: const EdgeInsets.only(bottom: 18.0),
                         child: _buildArticleCard(
-                          title: article.title,
-                          imageUrl: article.imageUrl,
-                          category: article.category,
-                          timeToRead: article.timeToRead,
-                          url: article.url,
-                          delay: 900 + (index * 100),
-                          size: size,
-                        ),
+                              title: article.title,
+                              imageUrl: article.imageUrl,
+                              category: article.category,
+                              timeToRead: article.timeToRead,
+                              url: article.url,
+                              delay: 900 + (index * 100),
+                              size: size,
+                            )
+                            .animate(delay: (900 + (index * 100)).ms)
+                            .fadeIn(duration: 500.ms)
+                            .slideY(begin: 0.1, end: 0, duration: 500.ms),
                       );
                     }).toList(),
               ),
@@ -619,18 +674,18 @@ class _HomeScreenState extends State<HomeScreen> {
   }) {
     return InkWell(
       onTap: () => _onArticleTap(title, url),
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
         width: size.width,
-        height: 130,
+        height: 140,
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
             ),
           ],
         ),
@@ -642,8 +697,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   imageUrl.isNotEmpty
                       ? ClipRRect(
                         borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(12),
-                          bottomLeft: Radius.circular(12),
+                          topLeft: Radius.circular(16),
+                          bottomLeft: Radius.circular(16),
                         ),
                         child: CachedNetworkImage(
                           imageUrl: imageUrl,
@@ -663,7 +718,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 child: Icon(
                                   _getCategoryIcon(category),
                                   color: _getCategoryColor(category),
-                                  size: 40,
+                                  size: 44,
                                 ),
                               ),
                         ),
@@ -674,48 +729,50 @@ class _HomeScreenState extends State<HomeScreen> {
                         decoration: BoxDecoration(
                           color: _getCategoryBackground(category),
                           borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(12),
-                            bottomLeft: Radius.circular(12),
+                            topLeft: Radius.circular(16),
+                            bottomLeft: Radius.circular(16),
                           ),
                         ),
                         child: Icon(
                           _getCategoryIcon(category),
                           color: _getCategoryColor(category),
-                          size: 40,
+                          size: 44,
                         ),
                       ),
             ),
             Expanded(
               flex: 3,
               child: Padding(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
+                        horizontal: 10,
+                        vertical: 5,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF05606B).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(4),
+                        color: const Color(0xFF4FC3F7).withOpacity(0.13),
+                        borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
                         category,
                         style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
                           color: Color(0xFF05606B),
+                          letterSpacing: 0.1,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 10),
                     Text(
                       title,
                       style: const TextStyle(
-                        fontSize: 16,
+                        fontSize: 17,
                         fontWeight: FontWeight.bold,
+                        color: Color(0xFF05606B),
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -725,15 +782,16 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         const Icon(
                           Icons.access_time,
-                          size: 14,
-                          color: Colors.grey,
+                          size: 15,
+                          color: Color(0xFF4FC3F7),
                         ),
-                        const SizedBox(width: 4),
+                        const SizedBox(width: 6),
                         Text(
                           timeToRead,
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: 13,
                             color: Colors.grey.shade600,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
@@ -745,7 +803,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-    ).animate(delay: delay.ms).fadeIn(duration: 400.ms, curve: Curves.easeOut);
+    );
   }
 
   void _onArticleTap(String title, String url) {

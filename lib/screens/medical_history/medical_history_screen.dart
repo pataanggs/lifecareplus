@@ -92,26 +92,76 @@ class _MedicalHistoryScreenState extends State<MedicalHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Riwayat Medis'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.filter_list),
-            onPressed: () {
-              showModalBottomSheet(
-                context: context,
-                builder:
-                    (context) => FilterSheet(
-                      selectedFilter: _selectedFilter,
-                      onFilterSelected: (filter) {
-                        setState(() => _selectedFilter = filter);
-                        Navigator.pop(context);
-                      },
-                    ),
-              );
-            },
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(120),
+        child: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF05606B), Color(0xFF4FC3F7)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
+            boxShadow: [
+              BoxShadow(
+                color: Color(0x3305606B),
+                blurRadius: 16,
+                offset: Offset(0, 6),
+              ),
+            ],
           ),
-        ],
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Riwayat Medis',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.filter_list,
+                          color: Colors.white,
+                        ),
+                        onPressed: () {
+                          showModalBottomSheet(
+                            context: context,
+                            builder:
+                                (context) => FilterSheet(
+                                  selectedFilter: _selectedFilter,
+                                  onFilterSelected: (filter) {
+                                    setState(() => _selectedFilter = filter);
+                                    Navigator.pop(context);
+                                  },
+                                ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Catatan dan riwayat kesehatan Anda',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.white.withOpacity(0.8),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
       body: Column(
         children: [
@@ -145,8 +195,8 @@ class _MedicalHistoryScreenState extends State<MedicalHistoryScreen> {
                       itemBuilder: (context, index) {
                         final record = _filteredRecords[index];
                         return _buildRecordCard(record)
-                            .animate()
-                            .fadeIn(duration: 200.ms)
+                            .animate(delay: (index * 80).ms)
+                            .fadeIn(duration: 400.ms)
                             .slideY(begin: 0.2, end: 0);
                       },
                     ),
@@ -155,9 +205,12 @@ class _MedicalHistoryScreenState extends State<MedicalHistoryScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showAddRecordDialog,
-        backgroundColor: const Color(0xFF05606B),
+        backgroundColor: const Color(0xFF4FC3F7),
+        foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
         label: const Text('Tambah Riwayat'),
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
   }
@@ -169,18 +222,22 @@ class _MedicalHistoryScreenState extends State<MedicalHistoryScreen> {
         children: [
           Icon(
             Icons.medical_information,
-            size: 80,
-            color: Colors.blue.shade300,
+            size: 90,
+            color: const Color(0xFF4FC3F7).withOpacity(0.25),
           ).animate().scale(duration: 600.ms),
-          const SizedBox(height: 24),
+          const SizedBox(height: 28),
           const Text(
             'Belum ada riwayat medis',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+            style: TextStyle(
+              fontSize: 19,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF05606B),
+            ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Text(
             'Tambahkan catatan medis Anda di sini.',
-            style: TextStyle(color: Colors.grey.shade600),
+            style: TextStyle(color: Colors.grey.shade600, fontSize: 15),
           ),
         ],
       ),
@@ -189,13 +246,15 @@ class _MedicalHistoryScreenState extends State<MedicalHistoryScreen> {
 
   Widget _buildRecordCard(MedicalRecord record) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.only(bottom: 18),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 6,
+      shadowColor: Colors.black.withOpacity(0.08),
       child: InkWell(
         onTap: () => _showRecordDetails(record),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(18),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -203,25 +262,27 @@ class _MedicalHistoryScreenState extends State<MedicalHistoryScreen> {
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
+                      horizontal: 14,
+                      vertical: 7,
                     ),
                     decoration: BoxDecoration(
-                      color: _getTypeColor(record.type).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
+                      color: _getTypeColor(record.type).withOpacity(0.13),
+                      borderRadius: BorderRadius.circular(22),
                     ),
                     child: Text(
                       record.type,
                       style: TextStyle(
                         color: _getTypeColor(record.type),
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        letterSpacing: 0.2,
                       ),
                     ),
                   ),
                   const Spacer(),
                   Text(
                     DateFormat('d MMM yyyy').format(record.date),
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                   ),
                 ],
               ),
@@ -229,14 +290,15 @@ class _MedicalHistoryScreenState extends State<MedicalHistoryScreen> {
               Text(
                 record.title,
                 style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF05606B),
                 ),
               ),
               const SizedBox(height: 8),
               Text(
                 record.diagnosis,
-                style: TextStyle(color: Colors.grey.shade700),
+                style: TextStyle(color: Colors.grey.shade700, fontSize: 15),
               ),
               const SizedBox(height: 12),
               Row(
@@ -249,7 +311,7 @@ class _MedicalHistoryScreenState extends State<MedicalHistoryScreen> {
                   const SizedBox(width: 4),
                   Text(
                     record.doctor,
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                   ),
                 ],
               ),

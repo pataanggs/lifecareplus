@@ -4,10 +4,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
+// Assuming these imports are correct and files exist
 import '/cubits/medication-schedule/medication_schedule_cubit.dart';
-import '/widgets/rounded_button.dart';
+import '/widgets/rounded_button.dart'; // Ensure this widget is also responsive
 import 'medication_stock_screen.dart';
-import '/utils/colors.dart';
+import '/utils/colors.dart'; // Assuming AppColors.textHighlight is defined here
 
 class MedicationScheduleScreen extends StatefulWidget {
   final String medicationName;
@@ -87,10 +88,9 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
     _formattedDate = formatted
         .split(' ')
         .map(
-          (word) =>
-              word.isNotEmpty
-                  ? '${word[0].toUpperCase()}${word.substring(1)}'
-                  : '',
+          (word) => word.isNotEmpty
+              ? '${word[0].toUpperCase()}${word.substring(1)}'
+              : '',
         )
         .join(' ');
   }
@@ -106,22 +106,33 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder:
-            (context) => MedicationStockScreen(
-              medicationName: widget.medicationName,
-              frequency: widget.frequency,
-              time: _selectedTime,
-              dosage: _selectedDosage,
-            ),
+        builder: (context) => MedicationStockScreen(
+          medicationName: widget.medicationName,
+          frequency: widget.frequency,
+          time: _selectedTime,
+          dosage: _selectedDosage,
+        ),
       ),
     );
   }
+
+  // Helper for responsive font size, adjust clamping as needed
+  double _responsiveFontSize(BuildContext context, double baseSize) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    // Scale factor with clamping to prevent excessively large/small fonts
+    final factor = (screenWidth / 375.0).clamp(0.85, 1.2);
+    return baseSize * factor;
+  }
+
 
   @override
   Widget build(BuildContext context) {
     if (_medicationScheduleCubit == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
+    // Screen dimensions
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
 
     return BlocProvider.value(
       value: _medicationScheduleCubit!,
@@ -151,22 +162,24 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
                   child: SingleChildScrollView(
                     physics: const ClampingScrollPhysics(),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      // Responsive padding
+                      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildHeader(state),
-                          const SizedBox(height: 24),
-                          _buildBackButton(),
-                          const SizedBox(height: 40),
-                          _buildMedicationInfo(),
-                          const SizedBox(height: 40),
-                          _buildScheduleSection(),
-                          const SizedBox(height: 40),
-                          _buildDosageSection(),
-                          const SizedBox(height: 40),
-                          _buildSubmitButton(),
-                          const SizedBox(height: 40),
+                          SizedBox(height: screenHeight * 0.02), // Initial top spacing
+                          _buildHeader(state, screenWidth, screenHeight),
+                          SizedBox(height: screenHeight * 0.02), // Responsive spacing
+                          _buildBackButton(screenWidth),
+                          SizedBox(height: screenHeight * 0.04), // Responsive spacing
+                          _buildMedicationInfo(screenWidth, screenHeight),
+                          SizedBox(height: screenHeight * 0.04), // Responsive spacing
+                          _buildScheduleSection(screenWidth, screenHeight),
+                          SizedBox(height: screenHeight * 0.04), // Responsive spacing
+                          _buildDosageSection(screenWidth, screenHeight),
+                          SizedBox(height: screenHeight * 0.05), // Responsive spacing
+                          _buildSubmitButton(screenWidth, screenHeight),
+                          SizedBox(height: screenHeight * 0.05), // Responsive spacing (ensure content doesn't stick to bottom)
                         ],
                       ),
                     ),
@@ -180,7 +193,7 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
     );
   }
 
-  Widget _buildHeader(MedicationScheduleState state) {
+  Widget _buildHeader(MedicationScheduleState state, double screenWidth, double screenHeight) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -190,16 +203,17 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
             Text(
               'Hi, ${state.data.nickname}',
               style: TextStyle(
-                fontSize: 26,
+                // Responsive font size
+                fontSize: _responsiveFontSize(context, 24), // Adjusted base size
                 fontWeight: FontWeight.bold,
                 color: Colors.white.withOpacity(0.9),
               ),
             ).animate(delay: 100.ms).fadeIn(duration: 400.ms),
-            const SizedBox(height: 4),
+            SizedBox(height: screenHeight * 0.005), // Responsive spacing
             Text(
               _formattedDate,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: _responsiveFontSize(context, 13), // Adjusted base size
                 fontWeight: FontWeight.w500,
                 color: Colors.white.withOpacity(0.7),
               ),
@@ -207,23 +221,25 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
           ],
         ),
         Container(
-          width: 48,
-          height: 48,
+          // Responsive size
+          width: screenWidth * 0.12,
+          height: screenWidth * 0.12,
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(0.2),
             shape: BoxShape.circle,
           ),
-          child: const Icon(
+          child: Icon(
             Icons.person_outline_rounded,
             color: Colors.white,
-            size: 28,
+            // Responsive icon size
+            size: screenWidth * 0.07,
           ),
         ).animate(delay: 200.ms).fadeIn(duration: 400.ms),
       ],
     );
   }
 
-  Widget _buildBackButton() {
+  Widget _buildBackButton(double screenWidth) {
     return GestureDetector(
       onTap: () {
         HapticFeedback.lightImpact();
@@ -231,12 +247,16 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
       },
       child: Row(
         children: [
-          const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
-          const SizedBox(width: 8),
+          Icon(
+            Icons.arrow_back_ios, color: Colors.white,
+            // Responsive icon size
+            size: screenWidth * 0.05,
+          ),
+          SizedBox(width: screenWidth * 0.02), // Responsive spacing
           Text(
             'Kembali',
             style: TextStyle(
-              fontSize: 18,
+              fontSize: _responsiveFontSize(context, 17), // Adjusted base size
               fontWeight: FontWeight.w500,
               color: Colors.grey.shade200,
             ),
@@ -246,11 +266,13 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
     ).animate(delay: 300.ms).fadeIn(duration: 400.ms);
   }
 
-  Widget _buildMedicationInfo() {
+  Widget _buildMedicationInfo(double screenWidth, double screenHeight) {
     return Column(
       children: [
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          // Responsive padding
+          padding: EdgeInsets.symmetric(
+              horizontal: screenWidth * 0.06, vertical: screenHeight * 0.018),
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(0.9),
             borderRadius: BorderRadius.circular(16),
@@ -268,31 +290,39 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
               Icon(
                 Icons.medication_outlined,
                 color: Colors.teal.shade700,
-                size: 24,
+                // Responsive icon size
+                size: screenWidth * 0.065,
               ),
-              const SizedBox(width: 12),
-              Text(
-                widget.medicationName,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF05606B),
+              SizedBox(width: screenWidth * 0.03), // Responsive spacing
+              Flexible( // Added Flexible to prevent overflow with long medication names
+                child: Text(
+                  widget.medicationName,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: _responsiveFontSize(context, 22), // Adjusted base size
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF05606B),
+                  ),
+                  overflow: TextOverflow.ellipsis, // Handle overflow
+                  maxLines: 2, // Allow up to two lines
                 ),
               ),
             ],
           ),
         ).animate(delay: 400.ms).fadeIn(duration: 500.ms),
-        const SizedBox(height: 16),
+        SizedBox(height: screenHeight * 0.018), // Responsive spacing
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          // Responsive padding
+          padding: EdgeInsets.symmetric(
+              horizontal: screenWidth * 0.04, vertical: screenHeight * 0.009),
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(0.2),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Text(
             widget.frequency,
-            style: const TextStyle(
-              fontSize: 14,
+            style: TextStyle(
+              fontSize: _responsiveFontSize(context, 13), // Adjusted base size
               fontWeight: FontWeight.w500,
               color: Colors.white,
             ),
@@ -302,49 +332,55 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
     );
   }
 
-  Widget _buildScheduleSection() {
+  Widget _buildScheduleSection(double screenWidth, double screenHeight) {
     return Column(
       children: [
         Text(
           'Kapan baiknya kami mengingatkan Anda?',
           textAlign: TextAlign.center,
           style: TextStyle(
-            fontSize: 24,
+            fontSize: _responsiveFontSize(context, 20), // Adjusted base size
             fontWeight: FontWeight.bold,
             height: 1.3,
             color: Colors.white.withOpacity(0.9),
           ),
         ).animate(delay: 500.ms).fadeIn(duration: 400.ms),
-        const SizedBox(height: 8),
+        SizedBox(height: screenHeight * 0.01), // Responsive spacing
         Text(
           'Pilih waktu yang paling sesuai dengan jadwal Anda',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.7)),
+          style: TextStyle(
+              fontSize: _responsiveFontSize(context, 13), color: Colors.white.withOpacity(0.7)),
         ).animate(delay: 550.ms).fadeIn(duration: 400.ms),
-        const SizedBox(height: 40),
-        _buildTimeSelector(),
+        SizedBox(height: screenHeight * 0.035), // Responsive spacing
+        _buildTimeSelector(screenWidth, screenHeight),
       ],
     );
   }
 
-  Widget _buildTimeSelector() {
+  Widget _buildTimeSelector(double screenWidth, double screenHeight) {
     return Row(
       children: [
-        const Expanded(
+        Expanded(
+          flex: 2, // Give more space to label if needed
           child: Text(
             'Jam',
             style: TextStyle(
-              fontSize: 24,
+              fontSize: _responsiveFontSize(context, 20), // Adjusted base size
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
           ),
         ),
+        SizedBox(width: screenWidth * 0.02),
         Expanded(
+          flex: 3, // Give more space to picker
           child: InkWell(
             onTap: _showTimePickerSheet,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              // Responsive padding
+              padding: EdgeInsets.symmetric(
+                  horizontal: screenWidth * 0.04, vertical: screenHeight * 0.014),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
@@ -364,20 +400,21 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
                       Icon(
                         Icons.access_time,
                         color: Colors.teal.shade700,
-                        size: 20,
+                        // Responsive icon size
+                        size: screenWidth * 0.055,
                       ),
-                      const SizedBox(width: 8),
+                      SizedBox(width: screenWidth * 0.02), // Responsive spacing
                       Text(
                         _selectedTime,
-                        style: const TextStyle(
-                          fontSize: 20,
+                        style: TextStyle(
+                          fontSize: _responsiveFontSize(context, 18), // Adjusted base size
                           fontWeight: FontWeight.bold,
                           color: Colors.black87,
                         ),
                       ),
                     ],
                   ),
-                  const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                  Icon(Icons.arrow_drop_down, color: Colors.grey, size: screenWidth * 0.06),
                 ],
               ),
             ),
@@ -387,49 +424,55 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
     ).animate(delay: 600.ms).fadeIn(duration: 400.ms);
   }
 
-  Widget _buildDosageSection() {
+  Widget _buildDosageSection(double screenWidth, double screenHeight) {
     return Column(
       children: [
-        const Text(
+        Text(
           'Berapa dosis yang Anda butuhkan?',
           textAlign: TextAlign.center,
           style: TextStyle(
-            fontSize: 24,
+            fontSize: _responsiveFontSize(context, 20), // Adjusted base size
             fontWeight: FontWeight.bold,
             height: 1.3,
             color: Colors.white,
           ),
         ).animate(delay: 700.ms).fadeIn(duration: 400.ms),
-        const SizedBox(height: 8),
+        SizedBox(height: screenHeight * 0.01), // Responsive spacing
         Text(
           'Pilih dosis sesuai dengan anjuran dokter',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.7)),
+          style: TextStyle(
+              fontSize: _responsiveFontSize(context, 13), color: Colors.white.withOpacity(0.7)),
         ).animate(delay: 750.ms).fadeIn(duration: 400.ms),
-        const SizedBox(height: 40),
-        _buildDosageSelector(),
+        SizedBox(height: screenHeight * 0.035), // Responsive spacing
+        _buildDosageSelector(screenWidth, screenHeight),
       ],
     );
   }
 
-  Widget _buildDosageSelector() {
+  Widget _buildDosageSelector(double screenWidth, double screenHeight) {
     return Row(
       children: [
-        const Expanded(
+        Expanded(
+          flex: 2,
           child: Text(
             'Dosis',
             style: TextStyle(
-              fontSize: 24,
+              fontSize: _responsiveFontSize(context, 20), // Adjusted base size
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
           ),
         ),
+        SizedBox(width: screenWidth * 0.02),
         Expanded(
+          flex: 3,
           child: InkWell(
             onTap: _showDosagePickerSheet,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              // Responsive padding
+              padding: EdgeInsets.symmetric(
+                  horizontal: screenWidth * 0.04, vertical: screenHeight * 0.014),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
@@ -444,25 +487,32 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.medication_outlined,
-                        color: Colors.teal.shade700,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        _selectedDosage,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                  Flexible( // Added flexible for dosage text
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min, // Important for Flexible
+                      children: [
+                        Icon(
+                          Icons.medication_outlined, // Consider dynamic icon based on dosage type later
+                          color: Colors.teal.shade700,
+                          // Responsive icon size
+                          size: screenWidth * 0.055,
                         ),
-                      ),
-                    ],
+                        SizedBox(width: screenWidth * 0.02), // Responsive spacing
+                        Flexible( // Ensure text doesn't overflow
+                          child: Text(
+                            _selectedDosage,
+                            style: TextStyle(
+                              fontSize: _responsiveFontSize(context, 17), // Adjusted base size
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                  Icon(Icons.arrow_drop_down, color: Colors.grey, size: screenWidth * 0.06),
                 ],
               ),
             ),
@@ -472,18 +522,19 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
     ).animate(delay: 800.ms).fadeIn(duration: 400.ms);
   }
 
-  Widget _buildSubmitButton() {
+  Widget _buildSubmitButton(double screenWidth, double screenHeight) {
     return Center(
       child: RoundedButton(
-            text: 'Selanjutnya',
-            onPressed: _proceed,
-            color: AppColors.textHighlight,
-            textColor: Colors.black,
-            width: 300,
-            height: 50,
-            borderRadius: 25,
-            elevation: 3,
-          )
+        text: 'Selanjutnya',
+        onPressed: _proceed,
+        color: AppColors.textHighlight, // Make sure AppColors is defined
+        textColor: Colors.black,
+        // Responsive size
+        width: screenWidth * 0.8,
+        height: screenHeight * 0.065,
+        borderRadius: (screenHeight * 0.065) / 2, // Maintain circular ends
+        elevation: 3,
+      )
           .animate(delay: 900.ms)
           .fadeIn(duration: 600.ms, curve: Curves.easeOut)
           .slideY(
@@ -496,40 +547,59 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
   }
 
   void _showTimePickerSheet() {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (context) {
-        String tempSelectedTime = _selectedTime;
+        String tempSelectedTime = _selectedTime; // This is the state for the modal
         return StatefulBuilder(
           builder: (context, setModalState) {
             return Container(
-              height: MediaQuery.of(context).size.height * 0.7,
+              // Responsive height for modal
+              height: screenHeight * 0.75, // Slightly increased for more scroll space
               decoration: const BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
               child: Column(
                 children: [
-                  _buildSheetHeader('Pilih Waktu'),
+                  _buildSheetHeader('Pilih Waktu', screenWidth),
                   Expanded(
                     child: Padding(
-                      padding: const EdgeInsets.all(20),
+                      // Responsive padding
+                      padding: EdgeInsets.all(screenWidth * 0.05),
                       child: SingleChildScrollView(
                         child: Column(
                           children: [
-                            _buildTimeDisplay(tempSelectedTime),
-                            const SizedBox(height: 30),
-                            _buildTimePicker(tempSelectedTime, setModalState),
-                            const SizedBox(height: 40),
-                            _buildTimePresets(tempSelectedTime, setModalState),
+                            _buildTimePicker(
+                              tempSelectedTime, // Pass the modal's current time state
+                              (newTime) { // Callback to update modal's time state
+                                setModalState(() {
+                                  tempSelectedTime = newTime;
+                                });
+                                // Also update main screen state live, or on confirm
+                                setState(() => _selectedTime = newTime);
+                              },
+                              screenWidth,
+                              screenHeight,
+                            ),
+                            SizedBox(height: screenHeight * 0.03), // Responsive spacing
+                            _buildTimePresets(tempSelectedTime, (newTime) {
+                              setModalState(() {
+                                tempSelectedTime = newTime;
+                              });
+                               setState(() => _selectedTime = newTime);
+                            }, screenWidth, screenHeight),
                           ],
                         ),
                       ),
                     ),
                   ),
-                  _buildConfirmButton(() => Navigator.pop(context)),
+                  _buildConfirmButton(() => Navigator.pop(context), screenWidth, screenHeight),
                 ],
               ),
             );
@@ -540,41 +610,52 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
   }
 
   void _showDosagePickerSheet() {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (context) {
-        String tempSelectedDosage = _selectedDosage;
+        String tempSelectedDosage = _selectedDosage; // State for the modal
         return StatefulBuilder(
           builder: (context, setModalState) {
             return Container(
-              height: MediaQuery.of(context).size.height * 0.5,
+              // Responsive height
+              height: screenHeight * 0.6, // Adjusted for dosage options
               decoration: const BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
               child: Column(
                 children: [
-                  _buildSheetHeader('Pilih Dosis'),
+                  _buildSheetHeader('Pilih Dosis', screenWidth),
                   Expanded(
                     child: Padding(
-                      padding: const EdgeInsets.all(20),
+                      // Responsive padding
+                      padding: EdgeInsets.all(screenWidth * 0.05),
                       child: SingleChildScrollView(
                         child: Column(
                           children: [
-                            _buildDosageDisplay(tempSelectedDosage),
-                            const SizedBox(height: 30),
+                            _buildDosageDisplay(tempSelectedDosage, screenWidth, screenHeight),
+                            SizedBox(height: screenHeight * 0.03), // Responsive spacing
                             _buildDosageOptions(
                               tempSelectedDosage,
-                              setModalState,
+                              (newDosage) {
+                                setModalState(() {
+                                  tempSelectedDosage = newDosage;
+                                });
+                                setState(() => _selectedDosage = newDosage);
+                              },
+                              screenWidth,
                             ),
                           ],
                         ),
                       ),
                     ),
                   ),
-                  _buildConfirmButton(() => Navigator.pop(context)),
+                  _buildConfirmButton(() => Navigator.pop(context), screenWidth, screenHeight),
                 ],
               ),
             );
@@ -584,10 +665,11 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
     );
   }
 
-  Widget _buildSheetHeader(String title) {
+  Widget _buildSheetHeader(String title, double screenWidth) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 16),
+      // Responsive padding
+      padding: EdgeInsets.symmetric(vertical: screenWidth * 0.04),
       decoration: const BoxDecoration(
         color: Color(0xFF05606B),
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -595,112 +677,199 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
       child: Column(
         children: [
           Container(
-            width: 40,
+            // Responsive size
+            width: screenWidth * 0.1,
             height: 5,
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.5),
               borderRadius: BorderRadius.circular(10),
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: screenWidth * 0.04), // Responsive spacing
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               color: Colors.white,
-              fontSize: 20,
+              fontSize: _responsiveFontSize(context, 18), // Adjusted base size
               fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: screenWidth * 0.02), // Responsive spacing
         ],
       ),
     );
   }
 
-  Widget _buildTimeDisplay(String time) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-      margin: const EdgeInsets.only(bottom: 30),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade300, width: 2),
-      ),
-      child: Text(
-        time,
-        textAlign: TextAlign.center,
-        style: const TextStyle(
-          fontSize: 40,
-          fontWeight: FontWeight.bold,
-          color: Color(0xFF05606B),
-          fontFamily: 'monospace',
-        ),
-      ),
-    );
-  }
-
   Widget _buildTimePicker(
-    String selectedTime,
-    Function(void Function()) setModalState,
+    String currentSheetTime,
+    Function(String newTime) onTimeUpdated, // This updates the modal's temp state
+    double screenWidth,
+    double screenHeight,
   ) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        _buildTimePickerColumn('Jam', selectedTime.split('.')[0], (index) {
-          final hour = index.toString().padLeft(2, '0');
-          final minutes = selectedTime.split('.')[1];
-          setModalState(() => selectedTime = '$hour.$minutes');
-          setState(() => _selectedTime = '$hour.$minutes');
-        }, 24),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text(
-            ':',
-            style: TextStyle(
-              fontSize: 40,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey.shade800,
+
+    // Controllers need to be managed if `currentSheetTime` changes (e.g. from presets)
+    // Using a StatefulWidget or re-creating controllers on build (if performance allows)
+    // For simplicity, assume StatefulBuilder handles rebuilds sufficiently.
+    // However, for robust scroll position updates when `currentSheetTime` changes from outside (presets),
+    // a more involved state management for controllers might be needed or keying the StatefulBuilder/picker.
+
+    // This StatefulBuilder is for the picker's internal hour/minute state to update its own display
+    return StatefulBuilder(
+      key: ValueKey(currentSheetTime), // Rebuild if currentSheetTime from preset changes
+      builder: (context, setPickerState) {
+        // Local state for selected hour and minute, re-initialized when key changes
+        int displayHour = int.tryParse(currentSheetTime.split('.')[0]) ?? 8;
+        int displayMinute = int.tryParse(currentSheetTime.split('.')[1]) ?? 0;
+
+        final hourController = FixedExtentScrollController(initialItem: displayHour);
+        final minuteController = FixedExtentScrollController(initialItem: displayMinute);
+        
+        void updateLocalTimeAndNotify(int newHour, int newMinute) {
+          setPickerState(() { // Update picker's internal display state
+            displayHour = newHour;
+            displayMinute = newMinute;
+          });
+          final newFormattedTime = '${newHour.toString().padLeft(2, '0')}.${newMinute.toString().padLeft(2, '0')}';
+          onTimeUpdated(newFormattedTime); // Notify the modal sheet (and consequently main screen)
+        }
+
+        return Column(
+          children: [
+            Container(
+              // Responsive padding and margin
+              padding: EdgeInsets.symmetric(vertical: screenHeight * 0.02, horizontal: screenWidth * 0.05),
+              margin: EdgeInsets.only(bottom: screenHeight * 0.03),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    const Color(0xFF05606B).withOpacity(0.1),
+                    const Color(0xFF88C1D0).withOpacity(0.1),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: const Color(0xFF05606B).withOpacity(0.2),
+                  width: 2,
+                ),
+              ),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                transitionBuilder: (Widget child, Animation<double> animation) {
+                  return ScaleTransition(
+                    scale: animation,
+                    child: FadeTransition(opacity: animation, child: child),
+                  );
+                },
+                child: Text(
+                  '${displayHour.toString().padLeft(2, '0')}.${displayMinute.toString().padLeft(2, '0')}',
+                  key: ValueKey<String>('${displayHour.toString().padLeft(2, '0')}.${displayMinute.toString().padLeft(2, '0')}'),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: _responsiveFontSize(context, 40), // Adjusted base size
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF05606B),
+                    fontFamily: 'monospace',
+                  ),
+                ),
+              ),
             ),
-          ),
-        ),
-        _buildTimePickerColumn('Menit', selectedTime.split('.')[1], (index) {
-          final minute = index.toString().padLeft(2, '0');
-          final hour = selectedTime.split('.')[0];
-          setModalState(() => selectedTime = '$hour.$minute');
-          setState(() => _selectedTime = '$hour.$minute');
-        }, 60),
-      ],
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildSafeTimePickerColumn(
+                  'Jam',
+                  displayHour,
+                  (index) {
+                    updateLocalTimeAndNotify(index, displayMinute);
+                    HapticFeedback.selectionClick();
+                  },
+                  24,
+                  hourController,
+                  screenWidth,
+                  screenHeight,
+                ),
+                Padding(
+                  // Responsive padding
+                  padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
+                  child: Text(
+                    ':',
+                    style: TextStyle(
+                      fontSize: _responsiveFontSize(context, 38), // Adjusted base size
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey.shade800,
+                    ),
+                  ),
+                ),
+                _buildSafeTimePickerColumn(
+                  'Menit',
+                  displayMinute,
+                  (index) {
+                    updateLocalTimeAndNotify(displayHour, index);
+                    HapticFeedback.selectionClick();
+                  },
+                  60,
+                  minuteController,
+                  screenWidth,
+                  screenHeight,
+                ),
+              ],
+            ),
+          ],
+        );
+      },
     );
   }
 
-  Widget _buildTimePickerColumn(
+  Widget _buildSafeTimePickerColumn(
     String label,
-    String selectedValue,
+    int selectedValue,
     Function(int) onChanged,
     int itemCount,
+    FixedExtentScrollController controller,
+    double screenWidth,
+    double screenHeight,
   ) {
     return Column(
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-            color: Colors.black87,
+        Container(
+          // Responsive padding
+          padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04, vertical: screenHeight * 0.01),
+          decoration: BoxDecoration(
+            color: const Color(0xFF05606B).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: _responsiveFontSize(context, 15), // Adjusted base size
+              color: const Color(0xFF05606B),
+            ),
           ),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: screenHeight * 0.015), // Responsive spacing
         Container(
-          height: 200,
-          width: 80,
+          // Responsive size for the picker wheel
+          height: screenHeight * 0.22, // Adjust as needed
+          width: screenWidth * 0.22,   // Adjust as needed
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(color: Colors.grey.shade300),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: ListWheelScrollView.useDelegate(
-            itemExtent: 40,
+            controller: controller,
+            // Responsive item extent
+            itemExtent: screenHeight * 0.045, // e.g., 40 for 890 height
             physics: const FixedExtentScrollPhysics(),
             diameterRatio: 1.5,
             overAndUnderCenterOpacity: 0.5,
@@ -708,32 +877,24 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
             childDelegate: ListWheelChildBuilderDelegate(
               childCount: itemCount,
               builder: (context, index) {
-                final value = index.toString().padLeft(2, '0');
-                final isSelected = selectedValue == value;
+                final isSelected = selectedValue == index;
                 return Container(
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color:
-                        isSelected
-                            ? const Color(0xFF05606B).withOpacity(0.1)
-                            : null,
+                    color: isSelected ? const Color(0xFF05606B).withOpacity(0.1) : null,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Text(
-                    value,
+                  child: AnimatedDefaultTextStyle(
+                    duration: const Duration(milliseconds: 200),
                     style: TextStyle(
-                      fontSize: 20,
-                      fontWeight:
-                          isSelected ? FontWeight.bold : FontWeight.normal,
-                      color:
-                          isSelected ? const Color(0xFF05606B) : Colors.black87,
+                      fontSize: _responsiveFontSize(context, isSelected ? 20 : 17), // Adjusted base sizes
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      color: isSelected ? const Color(0xFF05606B) : Colors.black87,
                     ),
+                    child: Text(index.toString().padLeft(2, '0')),
                   ),
                 );
               },
-            ),
-            controller: FixedExtentScrollController(
-              initialItem: int.parse(selectedValue),
             ),
           ),
         ),
@@ -742,99 +903,103 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
   }
 
   Widget _buildTimePresets(
-    String selectedTime,
-    Function(void Function()) setModalState,
+    String currentSheetTime, // This is tempSelectedTime from modal
+    Function(String) onPresetSelected, // Callback to update tempSelectedTime
+    double screenWidth,
+    double screenHeight,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Waktu yang disarankan:',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
-          ),
+        Row(
+          children: [
+            Icon(Icons.access_time, size: _responsiveFontSize(context, 19), color: Colors.teal.shade700),
+            SizedBox(width: screenWidth * 0.02), // Responsive spacing
+            Text(
+              'Waktu yang disarankan',
+              style: TextStyle(
+                fontSize: _responsiveFontSize(context, 16), // Adjusted base size
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: screenHeight * 0.02), // Responsive spacing
         Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children:
-              _timePresets.map((preset) {
-                final isSelected = selectedTime == preset['time'];
-                return InkWell(
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    setModalState(() => selectedTime = preset['time']);
-                    setState(() => _selectedTime = preset['time']);
-                  },
+          // Responsive spacing
+          spacing: screenWidth * 0.03,
+          runSpacing: screenHeight * 0.015,
+          children: _timePresets.map((preset) {
+            final isSelected = currentSheetTime == preset['time'];
+            return InkWell(
+              onTap: () {
+                HapticFeedback.selectionClick();
+                onPresetSelected(preset['time'] as String);
+              },
+              borderRadius: BorderRadius.circular(30),
+              child: Container(
+                // Responsive padding
+                padding: EdgeInsets.symmetric(
+                    vertical: screenHeight * 0.014, horizontal: screenWidth * 0.045),
+                decoration: BoxDecoration(
+                  color: isSelected ? const Color(0xFF05606B) : Colors.white,
                   borderRadius: BorderRadius.circular(30),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 10,
-                      horizontal: 16,
-                    ),
-                    decoration: BoxDecoration(
-                      color:
-                          isSelected ? const Color(0xFF05606B) : Colors.white,
-                      borderRadius: BorderRadius.circular(30),
-                      border: Border.all(
-                        color:
-                            isSelected
-                                ? const Color(0xFF05606B)
-                                : Colors.grey.shade300,
-                        width: 2,
-                      ),
-                      boxShadow:
-                          isSelected
-                              ? [
-                                BoxShadow(
-                                  color: const Color(
-                                    0xFF05606B,
-                                  ).withOpacity(0.3),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ]
-                              : null,
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          preset['icon'],
-                          color:
-                              isSelected ? Colors.white : Colors.grey.shade700,
-                          size: 16,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${preset['time']} (${preset['label']})',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color:
-                                isSelected
-                                    ? Colors.white
-                                    : Colors.grey.shade800,
-                          ),
-                        ),
-                      ],
-                    ),
+                  border: Border.all(
+                    color: isSelected ? const Color(0xFF05606B) : Colors.grey.shade300,
+                    width: 2,
                   ),
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: const Color(0xFF05606B).withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      preset['icon'] as IconData,
+                      color: isSelected ? Colors.white : Colors.grey.shade700,
+                      size: _responsiveFontSize(context, 17), // Adjusted base size
+                    ),
+                    SizedBox(width: screenWidth * 0.02), // Responsive spacing
+                    Text(
+                      '${preset['time']} (${preset['label']})',
+                      style: TextStyle(
+                        fontSize: _responsiveFontSize(context, 14), // Adjusted base size
+                        fontWeight: FontWeight.bold,
+                        color: isSelected ? Colors.white : Colors.grey.shade800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+                .animate()
+                .fadeIn(duration: 400.ms)
+                .scale(
+                  begin: const Offset(0.95, 0.95),
+                  end: const Offset(1, 1),
+                  duration: 400.ms,
+                  curve: Curves.easeOutQuad,
                 );
-              }).toList(),
+          }).toList(),
         ),
       ],
     );
   }
 
-  Widget _buildDosageDisplay(String dosage) {
+  Widget _buildDosageDisplay(String dosage, double screenWidth, double screenHeight) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-      margin: const EdgeInsets.only(bottom: 30),
+      // Responsive padding and margin
+      padding: EdgeInsets.symmetric(vertical: screenHeight * 0.02, horizontal: screenWidth * 0.05),
+      margin: EdgeInsets.only(bottom: screenHeight * 0.03),
       decoration: BoxDecoration(
         color: Colors.grey.shade100,
         borderRadius: BorderRadius.circular(16),
@@ -843,114 +1008,110 @@ class _MedicationScheduleScreenState extends State<MedicationScheduleScreen> {
       child: Text(
         dosage,
         textAlign: TextAlign.center,
-        style: const TextStyle(
-          fontSize: 32,
+        style: TextStyle(
+          fontSize: _responsiveFontSize(context, 28), // Adjusted base size
           fontWeight: FontWeight.bold,
-          color: Color(0xFF05606B),
+          color: const Color(0xFF05606B),
         ),
       ),
     );
   }
 
   Widget _buildDosageOptions(
-    String selectedDosage,
-    Function(void Function()) setModalState,
+    String currentSelectedDosage, // From modal's state
+    Function(String) onDosageSelected, // Callback to update modal's state
+    double screenWidth,
   ) {
     return Wrap(
-      spacing: 10,
-      runSpacing: 16,
+      // Responsive spacing
+      spacing: screenWidth * 0.025,
+      runSpacing: screenWidth * 0.04,
       alignment: WrapAlignment.center,
-      children:
-          _dosageOptions.map((option) {
-            final isSelected = selectedDosage == option['value'];
-            return InkWell(
-              onTap: () {
-                HapticFeedback.selectionClick();
-                setModalState(() => selectedDosage = option['value']);
-                setState(() => _selectedDosage = option['value']);
-              },
+      children: _dosageOptions.map((option) {
+        final isSelected = currentSelectedDosage == option['value'];
+        return InkWell(
+          onTap: () {
+            HapticFeedback.selectionClick();
+            onDosageSelected(option['value'] as String);
+          },
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            // Responsive width for dosage option cards
+            width: screenWidth * 0.42, // Keeps two items per row generally
+            // Responsive padding
+            padding: EdgeInsets.symmetric(vertical: screenWidth * 0.04, horizontal: screenWidth * 0.03),
+            decoration: BoxDecoration(
+              color: isSelected ? const Color(0xFF05606B) : Colors.white,
               borderRadius: BorderRadius.circular(16),
-              child: Container(
-                width: MediaQuery.of(context).size.width * 0.42,
-                padding: const EdgeInsets.symmetric(
-                  vertical: 16,
-                  horizontal: 16,
-                ),
-                decoration: BoxDecoration(
-                  color: isSelected ? const Color(0xFF05606B) : Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color:
-                        isSelected
-                            ? const Color(0xFF05606B)
-                            : Colors.grey.shade300,
-                    width: 2,
-                  ),
-                  boxShadow:
-                      isSelected
-                          ? [
-                            BoxShadow(
-                              color: const Color(0xFF05606B).withOpacity(0.3),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ]
-                          : null,
-                ),
-                child: Column(
+              border: Border.all(
+                color: isSelected ? const Color(0xFF05606B) : Colors.grey.shade300,
+                width: 2,
+              ),
+              boxShadow: isSelected
+                  ? [
+                      BoxShadow(
+                        color: const Color(0xFF05606B).withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          option['icon'],
-                          color:
-                              isSelected ? Colors.white : Colors.grey.shade700,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          option['value'],
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: isSelected ? Colors.white : Colors.black87,
-                          ),
-                        ),
-                      ],
+                    Icon(
+                      option['icon'] as IconData,
+                      color: isSelected ? Colors.white : Colors.grey.shade700,
+                      size: _responsiveFontSize(context, 19), // Adjusted base size
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      option['description'],
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color:
-                            isSelected
-                                ? Colors.white.withOpacity(0.8)
-                                : Colors.grey.shade600,
+                    SizedBox(width: screenWidth * 0.02), // Responsive spacing
+                    Flexible( // To prevent overflow with long dosage value
+                      child: Text(
+                        option['value'] as String,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: _responsiveFontSize(context, 15), // Adjusted base size
+                          fontWeight: FontWeight.bold,
+                          color: isSelected ? Colors.white : Colors.black87,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
                 ),
-              ),
-            );
-          }).toList(),
+                SizedBox(height: screenWidth * 0.01), // Responsive spacing
+                Text(
+                  option['description'] as String,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: _responsiveFontSize(context, 11), // Adjusted base size
+                    color: isSelected ? Colors.white.withOpacity(0.8) : Colors.grey.shade600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 
-  Widget _buildConfirmButton(VoidCallback onPressed) {
+  Widget _buildConfirmButton(VoidCallback onPressed, double screenWidth, double screenHeight) {
     return Padding(
-      padding: const EdgeInsets.all(16),
+      // Responsive padding
+      padding: EdgeInsets.all(screenWidth * 0.04),
       child: RoundedButton(
         text: 'Konfirmasi',
         onPressed: onPressed,
-        color: AppColors.textHighlight,
+        color: AppColors.textHighlight, // Ensure AppColors is defined
         textColor: Colors.black,
-        width: double.infinity,
-        height: 50,
-        borderRadius: 25,
+        width: double.infinity, // Takes full width of padding
+        // Responsive height
+        height: screenHeight * 0.06,
+        borderRadius: (screenHeight * 0.06) / 2, // Maintain circular ends
       ),
     );
   }
