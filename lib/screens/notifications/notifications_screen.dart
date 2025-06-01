@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -44,22 +46,31 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: const Text(
-          'Notifikasi',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.white),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.done_all, color: Colors.white),
-            tooltip: 'Tandai semua sudah dibaca',
-            onPressed: _markAllAsRead,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(kToolbarHeight),
+        child: SafeArea(
+          bottom: false,
+          child: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            title: const Text(
+              'Notifikasi',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            centerTitle: true,
+            iconTheme: const IconThemeData(color: Colors.white),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.done_all, color: Colors.white),
+                tooltip: 'Tandai semua sudah dibaca',
+                onPressed: _markAllAsRead,
+              ),
+            ],
           ),
-        ],
+        ),
       ),
       body: Stack(
         children: [
@@ -193,12 +204,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Widget _buildNotificationCard(NotificationItem notification, int index) {
-    final Color accent =
-        notification.isRead ? Colors.grey.shade200 : Colors.teal.shade100;
-    final Color iconBg =
-        notification.isRead ? Colors.grey.shade100 : Colors.teal.shade200;
-    final Color iconColor =
-        notification.isRead ? Colors.grey.shade600 : Colors.teal.shade700;
+    final bool isUnread = !notification.isRead;
+    final Color cardColor =
+        isUnread
+            ? Colors.white.withOpacity(0.35)
+            : Colors.white.withOpacity(0.18);
+    final Color borderColor =
+        isUnread
+            ? const Color(0xFF4FC3F7).withOpacity(0.5)
+            : Colors.white.withOpacity(0.12);
+
     return Dismissible(
       key: Key(notification.id),
       direction: DismissDirection.endToStart,
@@ -207,7 +222,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         padding: const EdgeInsets.only(right: 24),
         decoration: BoxDecoration(
           color: Colors.red.shade100,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(24),
         ),
         child: Icon(Icons.delete_outline, color: Colors.red.shade700, size: 32),
       ),
@@ -217,98 +232,129 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         child: Container(
           margin: const EdgeInsets.only(bottom: 20),
           decoration: BoxDecoration(
-            color: accent,
-            borderRadius: BorderRadius.circular(20),
+            color: cardColor,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: borderColor, width: 1.5),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.06),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
+                color: Colors.black.withOpacity(0.07),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
               ),
             ],
-            border: Border.all(
-              color:
-                  notification.isRead
-                      ? Colors.grey.shade200
-                      : Colors.teal.shade200,
-              width: 1.5,
-            ),
           ),
-          child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 12,
-            ),
-            leading: Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: iconBg,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(notification.icon, color: iconColor, size: 28),
-            ),
-            title: Text(
-              notification.title,
-              style: TextStyle(
-                fontWeight:
-                    notification.isRead ? FontWeight.normal : FontWeight.bold,
-                color:
-                    notification.isRead
-                        ? Colors.grey.shade700
-                        : Colors.teal.shade900,
-                fontSize: 16,
-              ),
-            ),
-            subtitle: Text(
-              notification.subtitle,
-              style: TextStyle(
-                color:
-                    notification.isRead
-                        ? Colors.grey.shade600
-                        : Colors.teal.shade800,
-                fontSize: 14,
-              ),
-            ),
-            trailing: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  notification.time,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color:
-                        notification.isRead
-                            ? Colors.grey.shade600
-                            : Colors.teal.shade700,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 14,
+                ),
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: _getTypeColor(notification.type).withOpacity(0.18),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(
+                    notification.icon,
+                    color: _getTypeColor(notification.type),
+                    size: 28,
                   ),
                 ),
-                if (!notification.isRead)
-                  Container(
-                    margin: const EdgeInsets.only(top: 4),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.teal.shade700,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Text(
-                      'Baru',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
+                title: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        notification.title,
+                        style: TextStyle(
+                          fontWeight:
+                              isUnread ? FontWeight.bold : FontWeight.normal,
+                          color:
+                              isUnread
+                                  ? const Color(0xFF05606B)
+                                  : Colors.grey.shade700,
+                          fontSize: 16,
+                        ),
                       ),
                     ),
+                    if (isUnread)
+                      Container(
+                        margin: const EdgeInsets.only(left: 8),
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF4FC3F7),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                  ],
+                ),
+                subtitle: Text(
+                  notification.subtitle,
+                  style: TextStyle(
+                    color:
+                        isUnread
+                            ? const Color(0xFF05606B)
+                            : Colors.grey.shade600,
+                    fontSize: 14,
                   ),
-              ],
+                ),
+                trailing: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      notification.time,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color:
+                            isUnread
+                                ? const Color(0xFF4FC3F7)
+                                : Colors.grey.shade600,
+                      ),
+                    ),
+                    if (isUnread)
+                      Container(
+                        margin: const EdgeInsets.only(top: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF4FC3F7),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Text(
+                          'Baru',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
       ),
     );
+  }
+
+  Color _getTypeColor(NotificationType type) {
+    switch (type) {
+      case NotificationType.medication:
+        return const Color(0xFF4FC3F7);
+      case NotificationType.appointment:
+        return const Color(0xFF43E97B);
+      case NotificationType.checkup:
+        return const Color(0xFF05606B);
+    }
   }
 
   void _handleNotificationTap(NotificationItem notification) {
