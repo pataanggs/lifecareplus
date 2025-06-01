@@ -11,6 +11,8 @@ import 'article_webview_screen.dart';
 
 import 'medication_reminder_screen.dart';
 import '/cubits/home/home_cubit.dart';
+import '/screens/notifications/notifications_screen.dart';
+import '/screens/settings/settings_screen.dart';
 
 class Article {
   final String title;
@@ -157,89 +159,33 @@ class _HomeScreenState extends State<HomeScreen> {
   void _onFeatureButtonTap(String feature) {
     HapticFeedback.mediumImpact();
 
-    if (feature == 'Medications') {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const MedicationReminderScreen()),
-      );
-    } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Navigating to $feature')));
-    }
-  }
-
-  void _showSignOutDialog() {
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Keluar dari Aplikasi'),
-            content: const Text(
-              'Apakah Anda yakin ingin keluar dari aplikasi LifeCare+?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Batal'),
-              ),
-              TextButton(
-                onPressed: _signOut,
-                child: const Text(
-                  'Keluar',
-                  style: TextStyle(color: Colors.red),
-                ),
-              ),
-            ],
-          ),
-    );
-  }
-
-  Future<void> _signOut() async {
-    try {
-      // Show loading indicator
-      Navigator.of(context).pop(); // Close dialog
-
-      // Show loading overlay
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
-      );
-
-      // Clear user data
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.clear();
-
-      // Sign out from Firebase
-      await _auth.signOut();
-
-      // Navigate to login screen
-      if (mounted) {
-        Navigator.of(context).pop(); // Remove loading dialog
-        Navigator.pushNamedAndRemoveUntil(
+    switch (feature) {
+      case 'Medications':
+        Navigator.push(
           context,
-          '/login',
-          (route) => false, // Remove all previous routes
+          MaterialPageRoute(builder: (_) => const MedicationReminderScreen()),
         );
-      }
-    } catch (error) {
-      if (kDebugMode) {
-        print('Error signing out: $error');
-      }
-
-      // Close any open dialogs
-      if (mounted) {
-        Navigator.of(context).pop();
-
-        // Show error message
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Gagal keluar dari aplikasi. Silakan coba lagi.'),
-            backgroundColor: Colors.red,
-          ),
+        break;
+      case 'Notifications':
+        showModalBottomSheet(
+          context: context,
+          backgroundColor: Colors.transparent,
+          isScrollControlled: true,
+          builder: (context) => const NotificationsScreen(),
         );
-      }
+        break;
+      case 'Settings':
+        showModalBottomSheet(
+          context: context,
+          backgroundColor: Colors.transparent,
+          isScrollControlled: true,
+          builder: (context) => const SettingsScreen(),
+        );
+        break;
+      default:
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Navigating to $feature')));
     }
   }
 
@@ -859,6 +805,80 @@ class _HomeScreenState extends State<HomeScreen> {
         return Colors.teal.shade100;
       default:
         return Colors.grey.shade100;
+    }
+  }
+
+  void _showSignOutDialog() {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Keluar dari Aplikasi'),
+            content: const Text(
+              'Apakah Anda yakin ingin keluar dari aplikasi LifeCare+?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Batal'),
+              ),
+              TextButton(
+                onPressed: _signOut,
+                child: const Text(
+                  'Keluar',
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
+          ),
+    );
+  }
+
+  Future<void> _signOut() async {
+    try {
+      // Show loading indicator
+      Navigator.of(context).pop(); // Close dialog
+
+      // Show loading overlay
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      // Clear user data
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+
+      // Sign out from Firebase
+      await _auth.signOut();
+
+      // Navigate to login screen
+      if (mounted) {
+        Navigator.of(context).pop(); // Remove loading dialog
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/login',
+          (route) => false, // Remove all previous routes
+        );
+      }
+    } catch (error) {
+      if (kDebugMode) {
+        print('Error signing out: $error');
+      }
+
+      // Close any open dialogs
+      if (mounted) {
+        Navigator.of(context).pop();
+
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Gagal keluar dari aplikasi. Silakan coba lagi.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 }
