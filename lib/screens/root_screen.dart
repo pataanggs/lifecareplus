@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:lifecareplus/cubits/profile/profile_cubit.dart';
+import 'package:lifecareplus/screens/health/health_screen.dart';
+import 'package:lifecareplus/screens/schedule/schedule_screen.dart';
 import 'package:lifecareplus/services/auth_service.dart';
 
 import 'home_screen.dart';
@@ -26,8 +28,8 @@ class _RootScreenState extends State<RootScreen> {
 
     _screens = [
       const HomeScreen(),
-      const Center(child: Text('Jadwal Screen')),
-      const Center(child: Text('Kesehatan Screen')),
+      const ScheduleScreen(),
+      const HealthScreen(),
       // Provide the ProfileCubit to the ProfileTabScreen
       BlocProvider<ProfileCubit>(
         create: (context) => ProfileCubit(_authService),

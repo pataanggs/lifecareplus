@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import '../profile/profile_screen.dart';
+import '../help/help_support_screen.dart';
+import '../about/about_screen.dart';
+import '../settings/language_screen.dart';
+import '../settings/theme_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -9,144 +15,180 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool _isDarkMode = false;
-  String _selectedLanguage = 'Indonesia';
-  bool _notificationsEnabled = true;
   bool _biometricEnabled = false;
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.8,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      child: Column(
-        children: [
-          _buildHeader(),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                _buildSettingsSection(
-                  title: 'Akun',
-                  items: [
-                    _buildSettingsItem(
-                      icon: Icons.person_outline,
-                      title: 'Profil',
-                      onTap: () => _navigateToProfile(),
-                    ),
-                    _buildSettingsItem(
-                      icon: Icons.notifications_outlined,
-                      title: 'Notifikasi',
-                      trailing: Switch(
-                        value: _notificationsEnabled,
-                        onChanged: _toggleNotifications,
-                        activeColor: const Color(0xFF05606B),
-                      ),
-                    ),
-                    _buildSettingsItem(
-                      icon: Icons.lock_outline,
-                      title: 'Privasi & Keamanan',
-                      trailing: Switch(
-                        value: _biometricEnabled,
-                        onChanged: _toggleBiometric,
-                        activeColor: const Color(0xFF05606B),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                _buildSettingsSection(
-                  title: 'Aplikasi',
-                  items: [
-                    _buildSettingsItem(
-                      icon: Icons.language_outlined,
-                      title: 'Bahasa',
-                      trailing: DropdownButton<String>(
-                        value: _selectedLanguage,
-                        underline: const SizedBox(),
-                        items:
-                            ['Indonesia', 'English']
-                                .map(
-                                  (lang) => DropdownMenuItem(
-                                    value: lang,
-                                    child: Text(lang),
-                                  ),
-                                )
-                                .toList(),
-                        onChanged: _changeLanguage,
-                      ),
-                    ),
-                    _buildSettingsItem(
-                      icon: Icons.dark_mode_outlined,
-                      title: 'Tema',
-                      trailing: Switch(
-                        value: _isDarkMode,
-                        onChanged: _toggleTheme,
-                        activeColor: const Color(0xFF05606B),
-                      ),
-                    ),
-                    _buildSettingsItem(
-                      icon: Icons.help_outline,
-                      title: 'Bantuan & Dukungan',
-                      onTap: () => _showHelpAndSupport(),
-                    ),
-                    _buildSettingsItem(
-                      icon: Icons.info_outline,
-                      title: 'Tentang',
-                      onTap: () => _showAbout(),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                _buildSettingsSection(
-                  title: 'Data',
-                  items: [
-                    _buildSettingsItem(
-                      icon: Icons.download_outlined,
-                      title: 'Unduh Data',
-                      onTap: () => _downloadData(),
-                    ),
-                    _buildSettingsItem(
-                      icon: Icons.delete_outline,
-                      title: 'Hapus Data',
-                      onTap: () => _showDeleteDataConfirmation(),
-                      textColor: Colors.red,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+  void _navigateToProfile() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const ProfileScreen()),
     );
   }
 
-  Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: const BoxDecoration(
-        color: Color(0xFF05606B),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          const Text(
-            'Pengaturan',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+  void _navigateToLanguage() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const LanguageScreen()),
+    );
+  }
+
+  void _navigateToTheme() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const ThemeScreen()),
+    );
+  }
+
+  void _navigateToHelpAndSupport() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const HelpSupportScreen()),
+    );
+  }
+
+  void _navigateToAbout() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const AboutScreen()),
+    );
+  }
+
+  void _toggleBiometric(bool value) {
+    HapticFeedback.lightImpact();
+    setState(() => _biometricEnabled = value);
+    // TODO: Implement biometric authentication
+  }
+
+  Future<void> _downloadData() async {
+    HapticFeedback.mediumImpact();
+    // TODO: Implement data download logic
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Mengunduh data...'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Future<void> _showDeleteDataConfirmation() async {
+    HapticFeedback.mediumImpact();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Hapus Data'),
+            content: const Text(
+              'Apakah Anda yakin ingin menghapus semua data? Tindakan ini tidak dapat dibatalkan.',
             ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Batal'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text('Hapus'),
+              ),
+            ],
           ),
-          IconButton(
-            icon: const Icon(Icons.close, color: Colors.white),
-            onPressed: () => Navigator.pop(context),
+    );
+
+    if (confirmed == true) {
+      // TODO: Implement data deletion logic
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Data berhasil dihapus'),
+            backgroundColor: Colors.red,
           ),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Pengaturan'),
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _buildSettingsSection(
+            title: 'Akun',
+            items: [
+              _buildSettingsItem(
+                icon: Icons.person_outline,
+                title: 'Profil',
+                onTap: _navigateToProfile,
+              ),
+              _buildSettingsItem(
+                icon: Icons.lock_outline,
+                title: 'Privasi & Keamanan',
+                trailing: Switch(
+                  value: _biometricEnabled,
+                  onChanged: _toggleBiometric,
+                  activeColor: const Color(0xFF05606B),
+                ),
+              ),
+            ],
+          ).animate().fadeIn(duration: 200.ms).slideX(begin: -0.1, end: 0),
+          const SizedBox(height: 24),
+          _buildSettingsSection(
+                title: 'Aplikasi',
+                items: [
+                  _buildSettingsItem(
+                    icon: Icons.language_outlined,
+                    title: 'Bahasa',
+                    onTap: _navigateToLanguage,
+                  ),
+                  _buildSettingsItem(
+                    icon: Icons.dark_mode_outlined,
+                    title: 'Tema',
+                    onTap: _navigateToTheme,
+                  ),
+                  _buildSettingsItem(
+                    icon: Icons.help_outline,
+                    title: 'Bantuan & Dukungan',
+                    onTap: _navigateToHelpAndSupport,
+                  ),
+                  _buildSettingsItem(
+                    icon: Icons.info_outline,
+                    title: 'Tentang',
+                    onTap: _navigateToAbout,
+                  ),
+                ],
+              )
+              .animate()
+              .fadeIn(duration: 200.ms, delay: 100.ms)
+              .slideX(begin: -0.1, end: 0),
+          const SizedBox(height: 24),
+          _buildSettingsSection(
+                title: 'Data',
+                items: [
+                  _buildSettingsItem(
+                    icon: Icons.download_outlined,
+                    title: 'Unduh Data',
+                    onTap: _downloadData,
+                  ),
+                  _buildSettingsItem(
+                    icon: Icons.delete_outline,
+                    title: 'Hapus Data',
+                    onTap: _showDeleteDataConfirmation,
+                    textColor: Colors.red,
+                  ),
+                ],
+              )
+              .animate()
+              .fadeIn(duration: 200.ms, delay: 200.ms)
+              .slideX(begin: -0.1, end: 0),
         ],
       ),
     );
@@ -159,28 +201,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Text(
-            title,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey.shade700,
-            ),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF05606B),
           ),
         ),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
+        const SizedBox(height: 12),
+        Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
+            side: BorderSide(color: Colors.grey.shade200),
           ),
           child: Column(children: items),
         ),
@@ -196,10 +230,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     Color? textColor,
   }) {
     return InkWell(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        onTap?.call();
-      },
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
@@ -226,114 +258,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Text(
                 title,
                 style: TextStyle(
+                  color: textColor,
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
-                  color: textColor,
                 ),
               ),
             ),
             if (trailing != null) ...[trailing, const SizedBox(width: 8)],
-            if (onTap != null)
+            if (onTap != null && trailing == null)
               Icon(Icons.chevron_right, color: Colors.grey.shade400),
           ],
         ),
-      ),
-    );
-  }
-
-  void _navigateToProfile() {
-    Navigator.pop(context);
-    // Add navigation to profile screen
-  }
-
-  void _toggleNotifications(bool value) {
-    HapticFeedback.lightImpact();
-    setState(() {
-      _notificationsEnabled = value;
-    });
-    // Add notification settings logic
-  }
-
-  void _toggleBiometric(bool value) {
-    HapticFeedback.lightImpact();
-    setState(() {
-      _biometricEnabled = value;
-    });
-    // Add biometric authentication logic
-  }
-
-  void _changeLanguage(String? value) {
-    if (value != null) {
-      HapticFeedback.lightImpact();
-      setState(() {
-        _selectedLanguage = value;
-      });
-      // Add language change logic
-    }
-  }
-
-  void _toggleTheme(bool value) {
-    HapticFeedback.lightImpact();
-    setState(() {
-      _isDarkMode = value;
-    });
-    // Add theme change logic
-  }
-
-  void _showHelpAndSupport() {
-    Navigator.pop(context);
-    // Add navigation to help and support screen
-  }
-
-  void _showAbout() {
-    Navigator.pop(context);
-    // Add navigation to about screen
-  }
-
-  void _downloadData() {
-    HapticFeedback.mediumImpact();
-    // Add data download logic
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Mengunduh data...'),
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
-
-  void _showDeleteDataConfirmation() {
-    HapticFeedback.mediumImpact();
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Hapus Data'),
-            content: const Text(
-              'Apakah Anda yakin ingin menghapus semua data? Tindakan ini tidak dapat dibatalkan.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Batal'),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  _deleteData();
-                },
-                child: const Text('Hapus', style: TextStyle(color: Colors.red)),
-              ),
-            ],
-          ),
-    );
-  }
-
-  void _deleteData() {
-    // Add data deletion logic
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Data berhasil dihapus'),
-        duration: Duration(seconds: 2),
       ),
     );
   }

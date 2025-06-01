@@ -44,7 +44,7 @@ class AboutScreen extends StatelessWidget {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(24),
               child: Image.asset(
-                'assets/images/app_logo.png',
+                'assets/lifecareplus_logo.png',
                 fit: BoxFit.cover,
               ),
             ),

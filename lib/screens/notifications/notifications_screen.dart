@@ -42,56 +42,89 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.8,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text(
+          'Notifikasi',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.done_all, color: Colors.white),
+            tooltip: 'Tandai semua sudah dibaca',
+            onPressed: _markAllAsRead,
+          ),
+        ],
       ),
-      child: Column(
+      body: Stack(
         children: [
-          _buildHeader(),
-          Expanded(
-            child:
-                _notifications.isEmpty
-                    ? _buildEmptyState()
-                    : _buildNotificationsList(),
+          Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color(0xFF05606B),
+                  Color(0xFF88C1D0),
+                  Color(0xFFB5D8E2),
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Column(
+              children: [
+                SizedBox(height: 12), // Extra space below status bar
+                _buildAnimatedHeader(),
+                Expanded(
+                  child:
+                      _notifications.isEmpty
+                          ? _buildEmptyState()
+                          : _buildNotificationsList(),
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: const BoxDecoration(
-        color: Color(0xFF05606B),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+  Widget _buildAnimatedHeader() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 12, 24, 8), // Reduced top padding
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text(
-            'Notifikasi',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              shape: BoxShape.circle,
             ),
-          ),
-          Row(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.done_all, color: Colors.white),
-                onPressed: _markAllAsRead,
-                tooltip: 'Tandai semua sudah dibaca',
+            child: const Icon(
+              Icons.notifications_active,
+              color: Colors.white,
+              size: 32,
+            ),
+          ).animate().fadeIn(duration: 400.ms).scale(duration: 400.ms),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              'Semua Notifikasi',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Colors.white.withOpacity(0.95),
               ),
-              IconButton(
-                icon: const Icon(Icons.close, color: Colors.white),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ],
+            ).animate(delay: 100.ms).fadeIn(duration: 400.ms),
           ),
         ],
       ),
@@ -103,24 +136,42 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.notifications_off_outlined,
-            size: 64,
-            color: Colors.grey.shade400,
-          ),
-          const SizedBox(height: 16),
-          Text(
+          Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Icon(
+              Icons.notifications_off_outlined,
+              size: 64,
+              color: Colors.teal.shade700,
+            ),
+          ).animate().fadeIn(duration: 600.ms).scale(duration: 600.ms),
+          const SizedBox(height: 24),
+          const Text(
             'Tidak ada notifikasi',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: Colors.grey.shade600,
+              color: Colors.white,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Anda akan melihat notifikasi di sini',
-            style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.white.withOpacity(0.8),
+            ),
           ),
         ],
       ),
@@ -129,115 +180,132 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   Widget _buildNotificationsList() {
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
       itemCount: _notifications.length,
       itemBuilder: (context, index) {
         final notification = _notifications[index];
-        return _buildNotificationItem(notification)
-            .animate(delay: (50 * index).ms)
+        return _buildNotificationCard(notification, index)
+            .animate(delay: (80 * index).ms)
             .fadeIn(duration: 400.ms, curve: Curves.easeOut)
-            .slideX(begin: 0.2, end: 0);
+            .slideY(begin: 0.2, end: 0);
       },
     );
   }
 
-  Widget _buildNotificationItem(NotificationItem notification) {
+  Widget _buildNotificationCard(NotificationItem notification, int index) {
+    final Color accent =
+        notification.isRead ? Colors.grey.shade200 : Colors.teal.shade100;
+    final Color iconBg =
+        notification.isRead ? Colors.grey.shade100 : Colors.teal.shade200;
+    final Color iconColor =
+        notification.isRead ? Colors.grey.shade600 : Colors.teal.shade700;
     return Dismissible(
       key: Key(notification.id),
       direction: DismissDirection.endToStart,
       background: Container(
         alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 16),
+        padding: const EdgeInsets.only(right: 24),
         decoration: BoxDecoration(
           color: Colors.red.shade100,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(20),
         ),
-        child: Icon(Icons.delete_outline, color: Colors.red.shade700),
+        child: Icon(Icons.delete_outline, color: Colors.red.shade700, size: 32),
       ),
       onDismissed: (direction) => _deleteNotification(notification),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
-        decoration: BoxDecoration(
-          color:
-              notification.isRead ? Colors.grey.shade50 : Colors.blue.shade50,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color:
-                notification.isRead
-                    ? Colors.grey.shade200
-                    : Colors.blue.shade100,
-          ),
-        ),
-        child: ListTile(
-          leading: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
+      child: GestureDetector(
+        onTap: () => _handleNotificationTap(notification),
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 20),
+          decoration: BoxDecoration(
+            color: accent,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.06),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+            border: Border.all(
               color:
                   notification.isRead
                       ? Colors.grey.shade200
-                      : Colors.blue.shade100,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              notification.icon,
-              color:
-                  notification.isRead
-                      ? Colors.grey.shade600
-                      : Colors.blue.shade700,
+                      : Colors.teal.shade200,
+              width: 1.5,
             ),
           ),
-          title: Text(
-            notification.title,
-            style: TextStyle(
-              fontWeight:
-                  notification.isRead ? FontWeight.normal : FontWeight.bold,
-              color: notification.isRead ? Colors.grey.shade700 : Colors.black,
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
             ),
-          ),
-          subtitle: Text(
-            notification.subtitle,
-            style: TextStyle(
-              color:
-                  notification.isRead ? Colors.grey.shade600 : Colors.black87,
-            ),
-          ),
-          trailing: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                notification.time,
-                style: TextStyle(
-                  fontSize: 12,
-                  color:
-                      notification.isRead
-                          ? Colors.grey.shade600
-                          : Colors.blue.shade700,
-                ),
+            leading: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: iconBg,
+                borderRadius: BorderRadius.circular(12),
               ),
-              if (!notification.isRead)
-                Container(
-                  margin: const EdgeInsets.only(top: 4),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
+              child: Icon(notification.icon, color: iconColor, size: 28),
+            ),
+            title: Text(
+              notification.title,
+              style: TextStyle(
+                fontWeight:
+                    notification.isRead ? FontWeight.normal : FontWeight.bold,
+                color:
+                    notification.isRead
+                        ? Colors.grey.shade700
+                        : Colors.teal.shade900,
+                fontSize: 16,
+              ),
+            ),
+            subtitle: Text(
+              notification.subtitle,
+              style: TextStyle(
+                color:
+                    notification.isRead
+                        ? Colors.grey.shade600
+                        : Colors.teal.shade800,
+                fontSize: 14,
+              ),
+            ),
+            trailing: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  notification.time,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color:
+                        notification.isRead
+                            ? Colors.grey.shade600
+                            : Colors.teal.shade700,
                   ),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade700,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Text(
-                    'Baru',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
+                ),
+                if (!notification.isRead)
+                  Container(
+                    margin: const EdgeInsets.only(top: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.teal.shade700,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Text(
+                      'Baru',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
-          onTap: () => _handleNotificationTap(notification),
         ),
       ),
     );
@@ -245,30 +313,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   void _handleNotificationTap(NotificationItem notification) {
     HapticFeedback.lightImpact();
-
-    // Mark as read
     setState(() {
       notification.isRead = true;
     });
-
-    // Handle different notification types
-    switch (notification.type) {
-      case NotificationType.medication:
-        // Navigate to medication reminder
-        Navigator.pop(context);
-        // Add navigation to medication screen
-        break;
-      case NotificationType.appointment:
-        // Navigate to appointment details
-        Navigator.pop(context);
-        // Add navigation to appointment screen
-        break;
-      case NotificationType.checkup:
-        // Navigate to checkup details
-        Navigator.pop(context);
-        // Add navigation to checkup screen
-        break;
-    }
+    // TODO: Add navigation or action based on notification type
   }
 
   void _markAllAsRead() {

@@ -11,7 +11,7 @@ class NearbyDoctorsScreen extends StatefulWidget {
 
 class _NearbyDoctorsScreenState extends State<NearbyDoctorsScreen> {
   GoogleMapController? _mapController;
-  Set<Marker> _markers = {};
+  final Set<Marker> _markers = {};
   Position? _currentPosition;
   bool _isLoading = true;
   String? _errorMessage;
