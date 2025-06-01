@@ -219,7 +219,7 @@ class _MedicationReminderScreenState extends State<MedicationReminderScreen> {
               ),
               const Spacer(),
               const Text(
-                'Pengobatan',
+                'Pengingat Obat',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,

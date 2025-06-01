@@ -64,6 +64,11 @@ class _ProfileDataScreenState extends State<ProfileDataScreen>
   }
 
   Future<void> _loadUserData() async {
+    if (_authService.currentUser == null) {
+      // User not authenticated, redirect to login
+      Navigator.pushReplacementNamed(context, '/login');
+      return;
+    }
     if (_authService.currentUser != null) {
       try {
         final prefs = await SharedPreferences.getInstance();

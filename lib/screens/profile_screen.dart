@@ -103,15 +103,48 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<String?> _uploadProfileImage(File imageFile) async {
     try {
       final userId = _authService.currentUser?.uid;
-      if (userId == null) return null;
+      if (userId == null) {
+        debugPrint('Cannot upload - user not authenticated');
+        return null;
+      }
 
-      final ref = _storage.ref().child('profile_images/$userId.jpg');
-      await ref.putFile(imageFile);
-      return await ref.getDownloadURL();
+      // Create a filename that matches your security rules pattern
+      // Format: userId_profile_timestamp.jpg
+      final timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+      final filename = '${userId}_profile_$timestamp.jpg';
+
+      debugPrint('Uploading profile image: $filename');
+
+      // Use the correct path with the new filename format
+      final ref = _storage.ref().child('profile_images/$filename');
+
+      // Set metadata
+      final metadata = SettableMetadata(
+        contentType: 'image/jpeg',
+        customMetadata: {'userId': userId},
+      );
+
+      // Upload the file
+      final uploadTask = ref.putFile(imageFile, metadata);
+
+      // Monitor upload progress
+      uploadTask.snapshotEvents.listen((taskSnapshot) {
+        final progress =
+            (taskSnapshot.bytesTransferred / taskSnapshot.totalBytes) * 100;
+        debugPrint('Upload progress: $progress%');
+      });
+
+      // Wait for upload to complete
+      await uploadTask;
+
+      // Get download URL
+      final downloadUrl = await ref.getDownloadURL();
+      debugPrint('Upload complete: $downloadUrl');
+      return downloadUrl;
     } catch (e) {
       debugPrint('Error uploading profile image: $e');
       if (mounted) {
-        showSnackBar(context, 'Gagal mengunggah gambar: $e');
+        showSnackBar(context, 'Gagal mengunggah gambar: ${e.toString()}');
       }
       return null;
     }
@@ -409,13 +442,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     // Save button
                     RoundedButton(
                       text: _isSaving ? 'Menyimpan...' : 'Simpan Perubahan',
-                      onPressed: _isSaving ? null : () { _saveUserProfile(); }, // Corrected line
+                      onPressed:
+                          _isSaving
+                              ? null
+                              : () {
+                                _saveUserProfile();
+                              }, // Corrected line
                       color: AppColors.textHighlight,
                       textColor: Colors.black,
                       width: double.infinity,
                       height: 50,
                       elevation: 3,
-                    )
+                    ),
                   ],
                 ),
               ),
