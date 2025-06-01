@@ -36,21 +36,31 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
+    _setSystemUI();
     Future.delayed(const Duration(milliseconds: 100), () {
       if (mounted) setState(() => _showContent = true);
     });
 
-    // Instead of creating a new AuthCubit instance, use the one provided
     try {
       _authCubit = context.read<AuthCubit>();
     } catch (e) {
-      // Fall back to creating a new one if that fails
       SharedPreferences.getInstance().then((prefs) {
         setState(() {
           _authCubit = AuthCubit(prefs);
         });
       });
     }
+  }
+
+  void _setSystemUI() {
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarIconBrightness: Brightness.light,
+      ),
+    );
   }
 
   @override
@@ -72,6 +82,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     try {
+      HapticFeedback.mediumImpact();
       if (kDebugMode) {
         print("Starting email/password sign-in process");
       }
@@ -93,12 +104,11 @@ class _LoginScreenState extends State<LoginScreen> {
     if (_isNavigating || _authCubit == null) return;
 
     try {
+      HapticFeedback.mediumImpact();
       if (kDebugMode) {
         print("Starting Google sign-in process");
       }
       final UserCredential credential = await _authCubit!.signInWithGoogle();
-
-      // Handle successful login
       await _handleSuccessfulLogin(credential);
     } catch (e) {
       if (kDebugMode) {
@@ -112,23 +122,17 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _handleSuccessfulLogin(UserCredential userCredential) async {
     try {
-      // Get SharedPreferences instance
       final prefs = await SharedPreferences.getInstance();
-
-      // Check if this user has completed onboarding before
       final String userId = userCredential.user?.uid ?? '';
       final bool hasCompletedOnboarding =
           prefs.getBool('${userId}_onboarding_completed') ?? false;
 
       if (hasCompletedOnboarding) {
-        // User has already completed onboarding before, go directly to home screen
         if (mounted) {
           Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
         }
       } else {
-        // First time login or onboarding not completed, go to onboarding flow
         if (mounted) {
-          // Navigate to your first onboarding screen (gender selection, etc.)
           Navigator.pushNamedAndRemoveUntil(
             context,
             '/onboarding',
@@ -140,7 +144,6 @@ class _LoginScreenState extends State<LoginScreen> {
       if (kDebugMode) {
         print("Error handling successful login: $e");
       }
-      // Fallback to onboarding flow if there's an error
       if (mounted) {
         Navigator.pushNamedAndRemoveUntil(
           context,
@@ -154,7 +157,12 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     if (_authCubit == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.textHighlight),
+        ),
+      );
     }
 
     return BlocProvider.value(
