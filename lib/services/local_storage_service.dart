@@ -6,6 +6,11 @@ import '../models/user_model.dart';
 class LocalStorageService {
   static const String _usersKey = 'local_users';
   static const String _currentUserKey = 'current_user';
+  static const String _uidKey = 'user_uid';
+  static const String _emailKey = 'user_email';
+  static const String _fullNameKey = 'user_full_name';
+  static const String _nicknameKey = 'user_nickname';
+  static const String _isLoggedInKey = 'is_logged_in';
 
   // Singleton pattern
   static final LocalStorageService _instance = LocalStorageService._internal();
@@ -99,5 +104,54 @@ class LocalStorageService {
       return null;
     }
     return getUserById(userId);
+  }
+
+  // Save user info to SharedPreferences
+  Future<void> saveUserInfo({
+    required String uid,
+    required String email,
+    required String fullName,
+    required String nickname,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_uidKey, uid);
+    await prefs.setString(_emailKey, email);
+    await prefs.setString(_fullNameKey, fullName);
+    await prefs.setString(_nicknameKey, nickname);
+    await prefs.setBool(_isLoggedInKey, true);
+  }
+
+  // Update specific user info fields
+  Future<void> updateUserInfo({String? fullName, String? nickname}) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (fullName != null) await prefs.setString(_fullNameKey, fullName);
+    if (nickname != null) await prefs.setString(_nicknameKey, nickname);
+  }
+
+  // Get user info
+  Future<Map<String, String>> getUserInfo() async {
+    final prefs = await SharedPreferences.getInstance();
+    return {
+      'uid': prefs.getString(_uidKey) ?? '',
+      'email': prefs.getString(_emailKey) ?? '',
+      'fullName': prefs.getString(_fullNameKey) ?? '',
+      'nickname': prefs.getString(_nicknameKey) ?? '',
+    };
+  }
+
+  // Check if user is logged in
+  Future<bool> isLoggedIn() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_isLoggedInKey) ?? false;
+  }
+
+  // Clear user info (for logout)
+  Future<void> clearUserInfo() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_uidKey);
+    await prefs.remove(_emailKey);
+    await prefs.remove(_fullNameKey);
+    await prefs.remove(_nicknameKey);
+    await prefs.setBool(_isLoggedInKey, false);
   }
 }

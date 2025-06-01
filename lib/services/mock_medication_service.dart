@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'local_storage_service.dart';
 
@@ -44,7 +45,9 @@ class MockMedicationService {
       final List<dynamic> medicationsList = jsonDecode(medicationsJson);
       return List<Map<String, dynamic>>.from(medicationsList);
     } catch (e) {
-      print('Error parsing medications: $e');
+      if (kDebugMode) {
+        print('Error parsing medications: $e');
+      }
       return [];
     }
   }

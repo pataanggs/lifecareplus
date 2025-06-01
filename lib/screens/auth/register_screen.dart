@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -89,6 +91,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
+  Future<void> _signInWithGoogle() async {
+    if (_isNavigating) return;
+
+    setState(() => _isNavigating = true);
+
+    try {
+      await _authCubit.signInWithGoogle();
+
+      // Navigate to onboarding flow for Google sign-ins
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const GenderSelectionScreen()),
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isNavigating = false);
+        showSnackBar(context, e.toString());
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocProvider.value(
@@ -114,7 +137,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
             backgroundColor: AppColors.background,
             body: SafeArea(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 48,
+                ),
                 child: AnimatedOpacity(
                   opacity: _showContent ? 1.0 : 0.0,
                   duration: const Duration(milliseconds: 300),
@@ -122,56 +148,56 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     children: [
                       // Header with back button
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          GestureDetector(
-                            onTap: () {
-                              HapticFeedback.selectionClick();
-                              Navigator.pop(context);
-                            },
-                            child: const Icon(
-                              Icons.arrow_back_ios,
-                              color: AppColors.textHighlight,
-                            ),
-                          ),
-                          Expanded(
-                            child: Center(
-                              child: Text(
-                                'Buat Akun',
-                                style: TextStyle(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              GestureDetector(
+                                onTap: () {
+                                  HapticFeedback.selectionClick();
+                                  Navigator.pop(context);
+                                },
+                                child: const Icon(
+                                  Icons.arrow_back_ios,
                                   color: AppColors.textHighlight,
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
-                            ),
+                              Expanded(
+                                child: Center(
+                                  child: Text(
+                                    'Buat Akun',
+                                    style: TextStyle(
+                                      color: AppColors.textHighlight,
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 24),
+                            ],
+                          )
+                          .animate(delay: 100.ms)
+                          .slideY(
+                            begin: -0.2,
+                            end: 0,
+                            duration: 400.ms,
+                            curve: Curves.easeOutQuad,
                           ),
-                          const SizedBox(width: 24),
-                        ],
-                      )
-                      .animate(delay: 100.ms)
-                      .slideY(
-                        begin: -0.2,
-                        end: 0,
-                        duration: 400.ms,
-                        curve: Curves.easeOutQuad,
-                      ),
 
                       const SizedBox(height: 24),
 
                       // Welcome text
                       const Center(
-                        child: Text(
-                          'Ayo Mulai',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      )
-                      .animate(delay: 200.ms)
-                      .fadeIn(duration: 400.ms, curve: Curves.easeOut),
+                            child: Text(
+                              'Ayo Mulai',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          )
+                          .animate(delay: 200.ms)
+                          .fadeIn(duration: 400.ms, curve: Curves.easeOut),
 
                       const SizedBox(height: 24),
 
@@ -309,47 +335,113 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                           ],
                           delay: 700.ms,
-                          child: state is AuthStateLoading
-                              ? const Center(
-                                  child: CircularProgressIndicator(
+                          child:
+                              state is AuthStateLoading
+                                  ? const Center(
+                                    child: CircularProgressIndicator(
+                                      color: AppColors.textHighlight,
+                                    ),
+                                  )
+                                  : RoundedButton(
+                                    text: 'Daftar',
+                                    onPressed: _register,
                                     color: AppColors.textHighlight,
+                                    textColor: Colors.black,
                                   ),
-                                )
-                              : RoundedButton(
-                                  text: 'Daftar',
-                                  onPressed: _register,
-                                  color: AppColors.textHighlight,
-                                  textColor: Colors.black,
-                                ),
                         ),
                       ),
 
-                      // Login link
-                      Center(
-                        child: GestureDetector(
-                          onTap: () {
-                            HapticFeedback.selectionClick();
-                            Navigator.pop(context);
-                          },
-                          child: const Text.rich(
-                            TextSpan(
-                              text: 'Kamu sudah punya akun? ',
-                              style: TextStyle(color: Colors.white),
+                      // Google Sign In Button
+                      Container(
+                            margin: const EdgeInsets.only(top: 16),
+                            child: Row(
                               children: [
-                                TextSpan(
-                                  text: 'Masuk',
-                                  style: TextStyle(
-                                    color: AppColors.textHighlight,
-                                    fontWeight: FontWeight.bold,
+                                Expanded(
+                                  child: Divider(
+                                    color: Colors.white.withOpacity(0.3),
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                  ),
+                                  child: Text(
+                                    'Atau daftar dengan',
+                                    style: TextStyle(
+                                      color: Colors.white.withOpacity(0.7),
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Divider(
+                                    color: Colors.white.withOpacity(0.3),
                                   ),
                                 ),
                               ],
                             ),
-                          ),
-                        ),
-                      )
-                      .animate(delay: 800.ms)
-                      .fadeIn(duration: 400.ms, curve: Curves.easeOut),
+                          )
+                          .animate(delay: 750.ms)
+                          .fadeIn(duration: 400.ms, curve: Curves.easeOut),
+
+                      const SizedBox(height: 16),
+
+                      // Google Sign In Button
+                      SizedBox(
+                            width: double.infinity,
+                            height: 50,
+                            child: ElevatedButton.icon(
+                              icon: Image.asset(
+                                'assets/google_logo.png',
+                                height: 24,
+                              ),
+                              label: const Text(
+                                'Daftar dengan Google',
+                                style: TextStyle(
+                                  color: Colors.black87,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                foregroundColor: Colors.black87,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(25),
+                                ),
+                              ),
+                              onPressed: _signInWithGoogle,
+                            ),
+                          )
+                          .animate(delay: 800.ms)
+                          .fadeIn(duration: 400.ms, curve: Curves.easeOut),
+
+                      // Login link
+                      Center(
+                            child: GestureDetector(
+                              onTap: () {
+                                HapticFeedback.selectionClick();
+                                Navigator.pop(context);
+                              },
+                              child: const Text.rich(
+                                TextSpan(
+                                  text: 'Kamu sudah punya akun? ',
+                                  style: TextStyle(color: Colors.white),
+                                  children: [
+                                    TextSpan(
+                                      text: 'Masuk',
+                                      style: TextStyle(
+                                        color: AppColors.textHighlight,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          )
+                          .animate(delay: 800.ms)
+                          .fadeIn(duration: 400.ms, curve: Curves.easeOut),
                     ],
                   ),
                 ),

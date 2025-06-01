@@ -124,17 +124,17 @@ class UserModel {
     String? profileImageUrl,
   }) {
     return UserModel(
-      id: this.id,
+      id: id,
       fullName: fullName ?? this.fullName,
       nickname: nickname ?? this.nickname,
-      email: this.email,
+      email: email,
       phone: phone ?? this.phone,
       gender: gender ?? this.gender,
       age: age ?? this.age,
       height: height ?? this.height,
       weight: weight ?? this.weight,
       profileImageUrl: profileImageUrl ?? this.profileImageUrl,
-      createdAt: this.createdAt,
+      createdAt: createdAt,
       updatedAt: DateTime.now(),
     );
   }

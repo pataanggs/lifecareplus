@@ -57,9 +57,7 @@ class _ArticleWebViewScreenState extends State<ArticleWebViewScreen> {
               onWebResourceError: (WebResourceError error) {
                 if (kDebugMode) {
                   print(
-                    "WebView error (${error.errorCode}): ${error.description} " +
-                    "URL: ${error.url} " + // What URL is failing?
-                    "isForMainFrame: ${error.isForMainFrame}" // Is it the main page or a sub-resource?
+                    "WebView error (${error.errorCode}): ${error.description} " "URL: ${error.url} " "isForMainFrame: ${error.isForMainFrame}" // Is it the main page or a sub-resource?
                   );
                 }
                 // Decide if this error should trigger the full error screen

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lifecareplus/screens/onboarding/profile_data_screen.dart';
@@ -92,9 +93,11 @@ class _HeightInputScreenState extends State<HeightInputScreen>
   void _onNext() async {
     HapticFeedback.mediumImpact();
     await OnboardingPreferences.saveHeight(selectedHeight);
-    print(
+    if (kDebugMode) {
+      print(
       '[LOG] Gender: ${widget.selectedGender}, Age: ${widget.selectedAge}, Height: $selectedHeight, Weight: ${widget.selectedWeight}',
     );
+    }
     _animationController.reverse().then((_) {
       Navigator.push(
         context,

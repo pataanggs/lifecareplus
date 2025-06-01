@@ -389,35 +389,4 @@ class _MedicationSummaryScreenState extends State<MedicationSummaryScreen> {
     ).animate(delay: delay.ms).fadeIn(duration: 400.ms);
   }
 
-  String _getFormattedDate() {
-    final now = DateTime.now();
-    final months = [
-      'JAN',
-      'FEB',
-      'MAR',
-      'APR',
-      'MEI',
-      'JUN',
-      'JUL',
-      'AGS',
-      'SEP',
-      'OKT',
-      'NOV',
-      'DES',
-    ];
-    final days = [
-      'SENIN',
-      'SELASA',
-      'RABU',
-      'KAMIS',
-      'JUMAT',
-      'SABTU',
-      'MINGGU',
-    ];
-
-    final day = days[now.weekday - 1];
-    final month = months[now.month - 1];
-
-    return '$day, $month ${now.day}';
-  }
 }

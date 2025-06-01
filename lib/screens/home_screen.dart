@@ -7,7 +7,6 @@ import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cached_network_image/cached_network_image.dart'; // Add this import
 import '/services/article_service.dart'; // Add this import
-import 'package:url_launcher/url_launcher.dart';
 import 'article_webview_screen.dart';
 
 import 'medication_reminder_screen.dart';

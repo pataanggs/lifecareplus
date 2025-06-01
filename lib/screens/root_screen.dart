@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:lifecareplus/cubits/profile/profile_cubit.dart';
+import 'package:lifecareplus/services/auth_service.dart';
 
 import 'home_screen.dart';
-import 'profile_tab_screen.dart'; // Import the new file
+import 'profile_tab_screen.dart';
 
 class RootScreen extends StatefulWidget {
   const RootScreen({super.key});
@@ -14,12 +17,24 @@ class RootScreen extends StatefulWidget {
 class _RootScreenState extends State<RootScreen> {
   int _selectedIndex = 0;
 
-  final List<Widget> _screens = [
-    const HomeScreen(),
-    const Center(child: Text('Jadwal Screen')),
-    const Center(child: Text('Kesehatan Screen')),
-    const ProfileTabScreen(), // Use the new screen
-  ];
+  late final List<Widget> _screens;
+  final AuthService _authService = AuthService();
+
+  @override
+  void initState() {
+    super.initState();
+
+    _screens = [
+      const HomeScreen(),
+      const Center(child: Text('Jadwal Screen')),
+      const Center(child: Text('Kesehatan Screen')),
+      // Provide the ProfileCubit to the ProfileTabScreen
+      BlocProvider<ProfileCubit>(
+        create: (context) => ProfileCubit(_authService),
+        child: const ProfileTabScreen(),
+      ),
+    ];
+  }
 
   void _onNavItemTapped(int index) {
     HapticFeedback.selectionClick();

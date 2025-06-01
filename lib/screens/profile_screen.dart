@@ -6,7 +6,7 @@ import 'dart:io';
 import '/widgets/rounded_button.dart';
 import '/services/auth_service.dart';
 import '/utils/show_snackbar.dart';
-import '/models/user_model.dart';
+import '/models/user_profile.dart';
 import '/utils/colors.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -27,7 +27,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final AuthService _authService = AuthService();
   final FirebaseStorage _storage = FirebaseStorage.instance;
 
-  UserModel? _user;
+  UserProfile? _user;
   File? _profileImage;
   bool _isLoading = true;
   bool _isSaving = false;
@@ -66,9 +66,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         fullNameController.text = user.fullName;
         nicknameController.text = user.nickname;
         phoneController.text = user.phone;
-        ageController.text = user.age.toString();
-        heightController.text = user.height.toString();
-        weightController.text = user.weight.toString();
+        ageController.text = user.age?.toString() ?? '0';
+        heightController.text = user.height?.toString() ?? '0';
+        weightController.text = user.weight?.toString() ?? '0';
         _currentProfileImageUrl = user.profileImageUrl;
       });
     } catch (e) {
@@ -94,6 +94,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     } catch (e) {
       debugPrint("Error picking image: $e");
+      if (mounted) {
+        showSnackBar(context, 'Gagal memilih gambar: $e');
+      }
     }
   }
 
@@ -107,20 +110,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return await ref.getDownloadURL();
     } catch (e) {
       debugPrint('Error uploading profile image: $e');
+      if (mounted) {
+        showSnackBar(context, 'Gagal mengunggah gambar: $e');
+      }
       return null;
     }
   }
 
   Future<void> _saveUserProfile() async {
-    if (_user == null) return;
+    if (_user == null) return; // Should not happen if UI is loaded correctly
 
+    // Basic validation
     if (fullNameController.text.isEmpty ||
         nicknameController.text.isEmpty ||
         phoneController.text.isEmpty ||
         ageController.text.isEmpty ||
         heightController.text.isEmpty ||
         weightController.text.isEmpty) {
-      showSnackBar(context, 'Semua data harus diisi');
+      showSnackBar(context, 'Semua data yang dapat diubah harus diisi');
+      return;
+    }
+
+    // Ensure _user!.uid is accessible and valid.
+    if (_user!.uid == null || _user!.uid!.isEmpty) {
+      debugPrint('User UID is missing, cannot update profile.');
+      showSnackBar(context, 'Kesalahan: ID Pengguna tidak ditemukan.');
       return;
     }
 
@@ -133,31 +147,60 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // Upload new profile image if selected
       if (_profileImage != null) {
         profileImageUrl = await _uploadProfileImage(_profileImage!);
+        // If upload failed and profileImageUrl is null, decide on behavior
+        // (e.g., use old one, or prevent saving if upload is critical)
       }
 
-      // Update user model
-      final updatedUser = UserModel(
-        id: _user!.id,
-        fullName: fullNameController.text,
-        nickname: nicknameController.text,
-        email: _user!.email,
-        phone: phoneController.text,
-        gender: _user!.gender,
-        age: int.tryParse(ageController.text) ?? _user!.age,
-        height: double.tryParse(heightController.text) ?? _user!.height,
-        weight: double.tryParse(weightController.text) ?? _user!.weight,
+      // These values are not directly editable in this screen's UI
+      final String userEmail = _user!.email;
+      final String userGender = _user!.gender;
+
+      // Prepare data for AuthService.updateUserProfile
+      final String newFullName = fullNameController.text;
+      final String newNickname = nicknameController.text;
+      final String newPhone = phoneController.text;
+      final int newAge = int.tryParse(ageController.text) ?? _user!.age ?? 0;
+      final double newHeight =
+          double.tryParse(heightController.text) ?? _user!.height ?? 0.0;
+      final double newWeight =
+          double.tryParse(weightController.text) ?? _user!.weight ?? 0.0;
+
+      // Call AuthService to update the profile in Firestore
+      await _authService.updateUserProfile(
+        uid: _user!.uid!,
+        fullName: newFullName,
+        nickname: newNickname,
+        phone: newPhone,
+        age: newAge,
+        height: newHeight,
+        weight: newWeight,
         profileImageUrl: profileImageUrl,
-        createdAt: _user!.createdAt,
-        updatedAt: DateTime.now(),
       );
 
-      await _authService.updateUserProfile(_user!.id, updatedUser as Map<String, dynamic>);
+      // Update local _user state optimistically
+      setState(() {
+        _user = UserProfile(
+          uid: _user!.uid,
+          fullName: newFullName,
+          nickname: newNickname,
+          email: userEmail,
+          phone: newPhone,
+          gender: userGender,
+          age: newAge,
+          height: newHeight,
+          weight: newWeight,
+          profileImageUrl: profileImageUrl,
+        );
+        _currentProfileImageUrl = profileImageUrl;
+        _profileImage = null; // Clear the selected file image
+      });
+
       if (!mounted) return;
       showSnackBar(context, 'Profil berhasil diperbarui');
     } catch (e) {
       debugPrint('Error updating profile: $e');
       if (!mounted) return;
-      showSnackBar(context, 'Terjadi kesalahan saat menyimpan profil');
+      showSnackBar(context, 'Terjadi kesalahan saat menyimpan profil: $e');
     } finally {
       if (mounted) {
         setState(() => _isSaving = false);
@@ -234,7 +277,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         image: FileImage(_profileImage!),
                                         fit: BoxFit.cover,
                                       )
-                                      : _currentProfileImageUrl != null
+                                      : _currentProfileImageUrl != null &&
+                                          _currentProfileImageUrl!.isNotEmpty
                                       ? DecorationImage(
                                         image: NetworkImage(
                                           _currentProfileImageUrl!,
@@ -245,7 +289,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                             child:
                                 (_profileImage == null &&
-                                        _currentProfileImageUrl == null)
+                                        (_currentProfileImageUrl == null ||
+                                            _currentProfileImageUrl!.isEmpty))
                                     ? const Center(
                                       child: Icon(
                                         Icons.person,
@@ -364,13 +409,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     // Save button
                     RoundedButton(
                       text: _isSaving ? 'Menyimpan...' : 'Simpan Perubahan',
-                      onPressed: _isSaving ? () {} : _saveUserProfile,
+                      onPressed: _isSaving ? null : () { _saveUserProfile(); }, // Corrected line
                       color: AppColors.textHighlight,
                       textColor: Colors.black,
                       width: double.infinity,
                       height: 50,
                       elevation: 3,
-                    ),
+                    )
                   ],
                 ),
               ),
@@ -397,55 +442,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
         const SizedBox(height: 8),
-        if (controller != null)
-          TextField(
-            controller: controller,
-            enabled: enabled,
-            keyboardType: keyboardType,
-            style: TextStyle(
-              color: enabled ? Colors.black : Colors.grey.shade700,
+        TextField(
+          controller: controller ?? TextEditingController(text: initialValue),
+          enabled: enabled,
+          keyboardType: keyboardType,
+          style: TextStyle(
+            color: enabled ? Colors.black : Colors.grey.shade700,
+          ),
+          decoration: InputDecoration(
+            hintText: hint,
+            filled: true,
+            fillColor:
+                enabled
+                    ? Colors.white
+                    : Colors.grey.shade300, // Differentiate disabled fill
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
             ),
-            decoration: InputDecoration(
-              hintText: hint,
-              filled: true,
-              fillColor: Colors.white,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 16,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide.none,
-              ),
-              disabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide.none,
-              ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide.none,
             ),
-          )
-        else
-          TextField(
-            enabled: false,
-            controller: TextEditingController(text: initialValue),
-            style: TextStyle(color: Colors.grey.shade700),
-            decoration: InputDecoration(
-              hintText: hint,
-              filled: true,
-              fillColor: Colors.white,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 16,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide.none,
-              ),
-              disabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: BorderSide.none,
-              ),
+            disabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide.none,
             ),
           ),
+        ),
         const SizedBox(height: 16),
       ],
     );

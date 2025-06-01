@@ -36,16 +36,21 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-
     Future.delayed(const Duration(milliseconds: 100), () {
       if (mounted) setState(() => _showContent = true);
     });
 
-    SharedPreferences.getInstance().then((prefs) {
-      if (mounted) {
-        _authCubit = AuthCubit(prefs);
-      }
-    });
+    // Instead of creating a new AuthCubit instance, use the one provided
+    try {
+      _authCubit = context.read<AuthCubit>();
+    } catch (e) {
+      // Fall back to creating a new one if that fails
+      SharedPreferences.getInstance().then((prefs) {
+        setState(() {
+          _authCubit = AuthCubit(prefs);
+        });
+      });
+    }
   }
 
   @override
@@ -77,6 +82,27 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       if (kDebugMode) {
         print("Error during sign in: $e");
+      }
+      if (mounted) {
+        showSnackBar(context, e.toString());
+      }
+    }
+  }
+
+  Future<void> _signInWithGoogle() async {
+    if (_isNavigating || _authCubit == null) return;
+
+    try {
+      if (kDebugMode) {
+        print("Starting Google sign-in process");
+      }
+      final UserCredential credential = await _authCubit!.signInWithGoogle();
+
+      // Handle successful login
+      await _handleSuccessfulLogin(credential);
+    } catch (e) {
+      if (kDebugMode) {
+        print("Error during Google sign in: $e");
       }
       if (mounted) {
         showSnackBar(context, e.toString());
@@ -146,7 +172,9 @@ class _LoginScreenState extends State<LoginScreen> {
             if (!hasCompletedOnboarding) {
               final nextStep =
                   await OnboardingPreferences.getNextIncompleteStep();
-              print("nextStep: $nextStep");
+              if (kDebugMode) {
+                print("nextStep: $nextStep");
+              }
 
               switch (nextStep) {
                 case 'gender':
@@ -242,7 +270,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   opacity: _showContent ? 1.0 : 0.0,
                   duration: const Duration(milliseconds: 300),
                   child: ListView(
-                    physics: ClampingScrollPhysics(),
+                    physics: const ClampingScrollPhysics(),
                     children: [
                       _headerComponent(context),
                       const SizedBox(height: 60),
@@ -415,6 +443,63 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _footerComponent(BuildContext context) {
     return Column(
       children: [
+        // Divider with "or" text
+        Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Divider(color: Colors.white.withOpacity(0.3)),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      'Atau masuk dengan',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.7),
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Divider(color: Colors.white.withOpacity(0.3)),
+                  ),
+                ],
+              ),
+            )
+            .animate(delay: 600.ms)
+            .fadeIn(duration: 400.ms, curve: Curves.easeOut),
+
+        // Google Sign In Button
+        SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton.icon(
+                icon: Image.asset('assets/google_logo.png', height: 24),
+                label: const Text(
+                  'Masuk dengan Google',
+                  style: TextStyle(
+                    color: Colors.black87,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 16,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.black87,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                ),
+                onPressed: _signInWithGoogle,
+              ),
+            )
+            .animate(delay: 650.ms)
+            .fadeIn(duration: 400.ms, curve: Curves.easeOut),
+
+        const SizedBox(height: 24),
+
+        // Register link
         Center(
               child: GestureDetector(
                 onTap: () {
@@ -422,7 +507,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const RegisterScreen(),
+                      builder:
+                          (context) => BlocProvider.value(
+                            value: _authCubit!, // Pass the existing instance
+                            child: const RegisterScreen(),
+                          ),
                     ),
                   );
                 },
@@ -445,7 +534,10 @@ class _LoginScreenState extends State<LoginScreen> {
             )
             .animate(delay: 700.ms)
             .fadeIn(duration: 400.ms, curve: Curves.easeOut),
+
         const SizedBox(height: 40),
+
+        // Terms and conditions
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 32),
           child: Text(

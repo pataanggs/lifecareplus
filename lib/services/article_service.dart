@@ -246,8 +246,10 @@ class ArticleService {
         }
 
         if (kDebugMode && articles.isEmpty && articleElements.isNotEmpty) {
-          print(
+          if (kDebugMode) {
+            print(
               'Found article elements but failed to parse any into Article objects. Double-check your inner selectors (title, image, category) for each article item.');
+          }
         }
         return articles;
       } else {

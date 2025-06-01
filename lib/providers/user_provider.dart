@@ -1,13 +1,13 @@
 import 'package:flutter/foundation.dart';
 import '../services/auth_service.dart';
-import '../models/user_model.dart';
+import '../models/user_profile.dart';
 
 class UserProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
-  UserModel? _user;
+  UserProfile? _user;
   bool _isLoading = false;
 
-  UserModel? get user => _user;
+  UserProfile? get user => _user;
   bool get isLoading => _isLoading;
 
   // Check if user is logged in
@@ -15,16 +15,17 @@ class UserProvider with ChangeNotifier {
 
   // Get user's display name (nickname or first name)
   String get displayName {
-    if (_user != null && _user!.nickname.isNotEmpty) {
+    if (_user != null && (_user!.nickname).isNotEmpty) {
       return _user!.nickname;
-    } else if (_user != null && _user!.fullName.isNotEmpty) {
+    } else if (_user != null && (_user!.fullName).isNotEmpty) {
       return _user!.fullName.split(' ')[0];
     }
     return _authService.currentUser?.displayName ?? 'Guest';
   }
 
   // Get profile image URL
-  String? get profileImageUrl => _user?.profileImageUrl ?? _authService.currentUser?.photoURL;
+  String? get profileImageUrl =>
+      _user?.profileImageUrl ?? _authService.currentUser?.photoURL;
 
   // Fetch user data
   Future<void> fetchUserData() async {
@@ -34,10 +35,10 @@ class UserProvider with ChangeNotifier {
       _isLoading = true;
       notifyListeners();
 
-      final user = await _authService.getUserProfile(
-        _authService.currentUser!.uid,
-      );
-      _user = user;
+      final user = await _authService.getCurrentUserProfile();
+      if (user != null) {
+        _user = user;
+      }
     } catch (e) {
       debugPrint('Error fetching user data: $e');
     } finally {
@@ -59,19 +60,27 @@ class UserProvider with ChangeNotifier {
   }) async {
     if (!isLoggedIn || _user == null) return false;
 
+    // Ensure we have a valid UID
+    if (_user!.uid == null || _user!.uid!.isEmpty) {
+      debugPrint('User UID is missing, cannot update profile.');
+      return false;
+    }
+
     try {
       _isLoading = true;
       notifyListeners();
 
       // Update Firebase Auth profile if name or photo changes
-      if (fullName != null || profileImageUrl != null) {
+      if (fullName != null) {
         await _authService.currentUser?.updateDisplayName(fullName);
+      }
+      if (profileImageUrl != null) {
         await _authService.currentUser?.updatePhotoURL(profileImageUrl);
       }
 
       // Create updated user model
-      final updatedUser = UserModel(
-        id: _user!.id,
+      final updatedUser = UserProfile(
+        uid: _user!.uid,
         fullName: fullName ?? _user!.fullName,
         nickname: nickname ?? _user!.nickname,
         email: _user!.email,
@@ -81,12 +90,20 @@ class UserProvider with ChangeNotifier {
         height: height ?? _user!.height,
         weight: weight ?? _user!.weight,
         profileImageUrl: profileImageUrl ?? _user!.profileImageUrl,
-        createdAt: _user!.createdAt,
-        updatedAt: DateTime.now(),
       );
 
-      // Update in storage
-      await _authService.updateUserProfile(_user!.id, updatedUser as Map<String, dynamic>);
+      // Update in Firestore via AuthService
+      await _authService.updateUserProfile(
+        uid: _user!.uid!,
+        fullName: fullName,
+        nickname: nickname,
+        phone: phone,
+        gender: gender,
+        age: age,
+        height: height,
+        weight: weight,
+        profileImageUrl: profileImageUrl,
+      );
 
       // Update local state
       _user = updatedUser;
