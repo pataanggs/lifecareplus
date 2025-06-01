@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter/webview_flutter.dart'
+    show WebViewCookieManager, WebViewCookie;
 import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -7,7 +9,11 @@ class ArticleWebViewScreen extends StatefulWidget {
   final String url;
   final String title;
 
-  const ArticleWebViewScreen({super.key, required this.url, required this.title});
+  const ArticleWebViewScreen({
+    super.key,
+    required this.url,
+    required this.title,
+  });
 
   @override
   State<ArticleWebViewScreen> createState() => _ArticleWebViewScreenState();
@@ -18,6 +24,9 @@ class _ArticleWebViewScreenState extends State<ArticleWebViewScreen> {
   bool isLoading = true;
   bool hasError = false;
   String errorMessage = '';
+
+  static const String _customUserAgent =
+      'Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Mobile Safari/537.36';
 
   @override
   void initState() {
@@ -36,6 +45,7 @@ class _ArticleWebViewScreenState extends State<ArticleWebViewScreen> {
     controller =
         WebViewController()
           ..setJavaScriptMode(JavaScriptMode.unrestricted)
+          ..setUserAgent(_customUserAgent)
           ..setNavigationDelegate(
             NavigationDelegate(
               onPageStarted: (String url) {
@@ -57,27 +67,29 @@ class _ArticleWebViewScreenState extends State<ArticleWebViewScreen> {
               onWebResourceError: (WebResourceError error) {
                 if (kDebugMode) {
                   print(
-                    "WebView error (${error.errorCode}): ${error.description} " "URL: ${error.url} " "isForMainFrame: ${error.isForMainFrame}" // Is it the main page or a sub-resource?
+                    "WebView error (\u001b[31m[0m${error.errorCode}): ${error.description} "
+                    "URL: ${error.url} "
+                    "isForMainFrame: ${error.isForMainFrame}",
                   );
                 }
-                // Decide if this error should trigger the full error screen
-                // Only show full error for main frame errors or critical ones.
-                if (error.isForMainFrame ?? false) { // Default to false if isForMainFrame is null (older webview_flutter versions)
-                    _handleError(error);
-                } else if (error.errorCode == -6) {
-                    // Optionally, still handle connection refused for sub-resources if you deem them critical
-                    // or just log them without showing the full error screen for a better user experience.
-                    // For now, let's assume only main frame errors trigger your full error UI.
-                    if (kDebugMode) {
-                      print("A sub-resource failed to load: ${error.url} with error ${error.errorCode}");
-                    }
-                } else {
-                  _handleError(error); // Handle other errors as before if needed
+                // Only show error for main frame
+                if (error.isForMainFrame ?? false) {
+                  _handleError(error);
                 }
               },
             ),
           )
           ..loadRequest(Uri.parse(url));
+
+    // Enable cookies using WebViewCookieManager
+    final cookieManager = WebViewCookieManager();
+    cookieManager.setCookie(
+      WebViewCookie(
+        name: 'accept_cookies',
+        value: 'true',
+        domain: Uri.parse(url).host,
+      ),
+    );
   }
 
   void _handleError(WebResourceError error) {
@@ -93,8 +105,15 @@ class _ArticleWebViewScreenState extends State<ArticleWebViewScreen> {
       case -8: // net::ERR_CONNECTION_TIMED_OUT
         message = 'Koneksi timeout. Silakan coba lagi nanti.';
         break;
+      case -10: // net::ERR_ACCESS_DENIED
+        message = 'Akses ke artikel ditolak. Coba buka di browser.';
+        break;
+      case -118: // net::ERR_CONNECTION_TIMED_OUT (iOS)
+        message = 'Koneksi timeout. Silakan coba lagi nanti.';
+        break;
       default:
-        message = 'Terjadi kesalahan saat memuat artikel.';
+        message =
+            'Terjadi kesalahan saat memuat artikel. Situs ini mungkin membatasi akses dari aplikasi. Coba buka di browser.';
     }
 
     if (mounted) {

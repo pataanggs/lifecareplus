@@ -470,13 +470,13 @@ class HealthScreen extends StatelessWidget {
                         }
                         final cubit = parentContext.read<HealthCubit>();
                         if (isEdit) {
-                          cubit.deleteRecord(record!.id);
+                          cubit.deleteRecord(record.id);
                         }
                         cubit.addRecord(
                           HealthRecord(
                             id:
                                 isEdit
-                                    ? record!.id
+                                    ? record.id
                                     : DateTime.now().millisecondsSinceEpoch
                                         .toString(),
                             type: type,
