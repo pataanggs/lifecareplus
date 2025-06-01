@@ -13,6 +13,11 @@ import 'medication_reminder_screen.dart';
 import '/cubits/home/home_cubit.dart';
 import '/screens/notifications/notifications_screen.dart';
 import '/screens/settings/settings_screen.dart';
+import '/screens/medical_history/medical_history_screen.dart';
+import '/screens/consultations/consultations_screen.dart';
+import '/screens/vital_signs/vital_signs_screen.dart';
+import '/screens/nearby_doctors/nearby_doctors_screen.dart';
+import '/screens/chat/chat_screen.dart';
 
 class Article {
   final String title;
@@ -160,6 +165,36 @@ class _HomeScreenState extends State<HomeScreen> {
     HapticFeedback.mediumImpact();
 
     switch (feature) {
+      case 'Medical History':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const MedicalHistoryScreen()),
+        );
+        break;
+      case 'Consultations':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const ConsultationsScreen()),
+        );
+        break;
+      case 'Vital Signs':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const VitalSignsScreen()),
+        );
+        break;
+      case 'Nearby Doctors':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const NearbyDoctorsScreen()),
+        );
+        break;
+      case 'Chat':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const ChatScreen()),
+        );
+        break;
       case 'Medications':
         Navigator.push(
           context,

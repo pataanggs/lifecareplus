@@ -52,9 +52,9 @@
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Aplikasi membutuhkan akses mikrofon untuk fitur voice note</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Aplikasi membutuhkan akses lokasi untuk menampilkan lokasi terdekat</string>
+	<string>LifeCarePlus membutuhkan akses lokasi Anda untuk menemukan dokter dan fasilitas kesehatan terdekat.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
-	<string>Aplikasi membutuhkan akses lokasi untuk menampilkan lokasi terdekat</string>
+	<string>LifeCarePlus membutuhkan akses lokasi Anda untuk menemukan dokter dan fasilitas kesehatan terdekat.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Aplikasi membutuhkan akses lokasi untuk menampilkan lokasi terdekat</string>
 	<key>NSCalendarsUsageDescription</key>
