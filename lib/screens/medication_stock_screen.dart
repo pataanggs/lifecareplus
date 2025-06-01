@@ -2,6 +2,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 
 import '/cubits/medication-stock/medication_stock_cubit.dart';
 import 'medication_summary_screen.dart';
@@ -32,57 +33,117 @@ class _MedicationStockScreenState extends State<MedicationStockScreen> {
   bool _showContent = false;
   int _currentStock = 30;
   late String _unitType;
-
+  String _formattedDate = '';
   MedicationStockCubit? _cubit;
 
   @override
   void initState() {
     super.initState();
     _unitType = _getUnitFromDosage();
+    _setFormattedDate();
     Future.delayed(const Duration(milliseconds: 100), () {
       if (mounted) setState(() => _showContent = true);
     });
 
     _cubit = MedicationStockCubit();
     _cubit?.initialize();
-    
-    // show dialog information about alarm permission
     _showAlarmInfoIfNeeded();
   }
-  
+
+  void _setFormattedDate() {
+    final now = DateTime.now();
+    final formatter = DateFormat('EEEE, MMM d', 'id_ID');
+    final formatted = formatter.format(now);
+    _formattedDate = formatted
+        .split(' ')
+        .map(
+          (word) =>
+              word.isNotEmpty
+                  ? '${word[0].toUpperCase()}${word.substring(1)}'
+                  : '',
+        )
+        .join(' ');
+  }
+
   void _showAlarmInfoIfNeeded() {
-    // for android 12+
     if (mounted) {
       Future.delayed(const Duration(milliseconds: 800), () {
         _showAlarmPermissionInfo();
       });
     }
   }
-  
+
   void _showAlarmPermissionInfo() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Penting'),
-        content: const Text(
-          'Untuk pengingat obat yang akurat, pastikan izin "Pengaturan Alarm" atau '
-          '"Alarm & Reminder" diaktifkan. Anda dapat mengaturnya di '
-          'Pengaturan > Aplikasi > LifeCarePlus > Izin.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Saya Mengerti'),
+      builder:
+          (context) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: Row(
+              children: [
+                Icon(
+                  Icons.notifications_active,
+                  color: Colors.teal.shade700,
+                  size: 24,
+                ),
+                const SizedBox(width: 12),
+                const Text('Penting'),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Untuk pengingat obat yang akurat, pastikan izin "Pengaturan Alarm" atau '
+                  '"Alarm & Reminder" diaktifkan.',
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.teal.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.teal.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        color: Colors.teal.shade700,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Anda dapat mengaturnya di Pengaturan > Aplikasi > LifeCarePlus > Izin.',
+                          style: TextStyle(
+                            color: Colors.teal.shade700,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Saya Mengerti'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
   @override
   void dispose() {
-    super.dispose();
     _cubit?.close();
+    super.dispose();
   }
 
   void _toggleReminder(bool value) {
@@ -138,7 +199,7 @@ class _MedicationStockScreenState extends State<MedicationStockScreen> {
   @override
   Widget build(BuildContext context) {
     if (_cubit == null) {
-      return const Center(child: CircularProgressIndicator());
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return BlocProvider.value(
@@ -149,7 +210,20 @@ class _MedicationStockScreenState extends State<MedicationStockScreen> {
           listener: (context, state) {
             if (state is MedicationStockStateError) {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(state.data.errorMessage ?? 'Error')),
+                SnackBar(
+                  content: Row(
+                    children: [
+                      const Icon(Icons.error_outline, color: Colors.white),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(state.data.errorMessage ?? 'Error')),
+                    ],
+                  ),
+                  backgroundColor: Colors.red.shade700,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
               );
             }
 
@@ -205,399 +279,26 @@ class _MedicationStockScreenState extends State<MedicationStockScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const SizedBox(height: 16),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                              'Hi, ${state.data.nickname}',
-                                              style: TextStyle(
-                                                fontSize: 26,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.white.withValues(
-                                                  alpha: 0.9,
-                                                ),
-                                              ),
-                                            )
-                                            .animate(delay: 100.ms)
-                                            .fadeIn(duration: 400.ms),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                              state.data.formattedDate,
-                                              style: TextStyle(
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.w500,
-                                                color: Colors.white.withValues(
-                                                  alpha: 0.7,
-                                                ),
-                                              ),
-                                            )
-                                            .animate(delay: 200.ms)
-                                            .fadeIn(duration: 400.ms),
-                                      ],
-                                    ),
-                                    Container(
-                                          width: 48,
-                                          height: 48,
-                                          decoration: BoxDecoration(
-                                            color: Colors.white.withValues(
-                                              alpha: .2,
-                                            ),
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: const Icon(
-                                            Icons.person_outline_rounded,
-                                            color: Colors.white,
-                                            size: 28,
-                                          ),
-                                        )
-                                        .animate(delay: 200.ms)
-                                        .fadeIn(duration: 400.ms),
-                                  ],
-                                ),
+                                _buildHeader(state),
                                 const SizedBox(height: 24),
-                                GestureDetector(
-                                      onTap: () => Navigator.pop(context),
-                                      child: Row(
-                                        children: [
-                                          const Icon(
-                                            Icons.arrow_back_ios,
-                                            color: Colors.white,
-                                            size: 20,
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            'Kembali',
-                                            style: TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.w500,
-                                              color: Colors.grey.shade200,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    )
-                                    .animate(delay: 300.ms)
-                                    .fadeIn(duration: 400.ms),
+                                _buildBackButton(),
                                 const SizedBox(height: 40),
-                                Center(
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 24,
-                                          vertical: 12,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius: BorderRadius.circular(
-                                            16,
-                                          ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black.withValues(
-                                                alpha: .05,
-                                              ),
-                                              blurRadius: 6,
-                                              offset: const Offset(0, 2),
-                                            ),
-                                          ],
-                                        ),
-                                        child: Text(
-                                          widget.medicationName,
-                                          style: const TextStyle(
-                                            fontSize: 24,
-                                            fontWeight: FontWeight.bold,
-                                            color: Color(0xFF444444),
-                                          ),
-                                        ),
-                                      ),
-                                    )
-                                    .animate(delay: 400.ms)
-                                    .fadeIn(duration: 400.ms),
+                                _buildMedicationInfo(),
                                 const SizedBox(height: 30),
-                                Center(
-                                  child: Text(
-                                    'Apakah Anda butuh pengingat untuk\nmengisi ulang persediaan obat?',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.bold,
-                                      height: 1.3,
-                                      color: Colors.grey.shade800,
-                                    ),
-                                  ),
-                                ).animate(delay: 500.ms).fadeIn(duration: 400.ms),
+                                _buildReminderQuestion(),
                                 const SizedBox(height: 40),
-                                Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          'Ingatkan Saya',
-                                          style: TextStyle(
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.grey.shade800,
-                                          ),
-                                        ),
-                                        GestureDetector(
-                                          onTap:
-                                              () => _toggleReminder(
-                                                !_reminderEnabled,
-                                              ),
-                                          child: Container(
-                                            width: 70,
-                                            height: 38,
-                                            padding: const EdgeInsets.all(4),
-                                            decoration: BoxDecoration(
-                                              borderRadius:
-                                                  BorderRadius.circular(20),
-                                              color:
-                                                  _reminderEnabled
-                                                      ? const Color(0xFF05606B)
-                                                      : Colors.grey.shade300,
-                                            ),
-                                            child: AnimatedAlign(
-                                              alignment:
-                                                  _reminderEnabled
-                                                      ? Alignment.centerRight
-                                                      : Alignment.centerLeft,
-                                              duration: const Duration(
-                                                milliseconds: 200,
-                                              ),
-                                              curve: Curves.easeOut,
-                                              child: Container(
-                                                width: 30,
-                                                height: 30,
-                                                decoration: BoxDecoration(
-                                                  shape: BoxShape.circle,
-                                                  color: Colors.white,
-                                                  boxShadow: [
-                                                    BoxShadow(
-                                                      color: Colors.black
-                                                          .withValues(
-                                                            alpha: 0.1,
-                                                          ),
-                                                      blurRadius: 4,
-                                                      offset: const Offset(
-                                                        0,
-                                                        2,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    )
-                                    .animate(delay: 600.ms)
-                                    .fadeIn(duration: 400.ms),
+                                _buildReminderToggle(),
                                 const SizedBox(height: 60),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Persediaan saat ini',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.grey.shade700,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 16),
-                                    InkWell(
-                                      onTap:
-                                          _reminderEnabled
-                                              ? _showStockEditor
-                                              : null,
-                                      borderRadius: BorderRadius.circular(30),
-                                      child: Container(
-                                        width: double.infinity,
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 20,
-                                          vertical: 16,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey.shade200,
-                                          borderRadius: BorderRadius.circular(
-                                            30,
-                                          ),
-                                          border: Border.all(
-                                            color:
-                                                _reminderEnabled
-                                                    ? Colors.transparent
-                                                    : Colors.grey.shade300,
-                                            width: 1,
-                                          ),
-                                        ),
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            const Text(
-                                              'Jumlah',
-                                              style: TextStyle(
-                                                fontSize: 20,
-                                                fontWeight: FontWeight.bold,
-                                                color: Color(0xFF444444),
-                                              ),
-                                            ),
-                                            Row(
-                                              children: [
-                                                Text(
-                                                  '$_currentStock $_unitType',
-                                                  style: TextStyle(
-                                                    fontSize: 20,
-                                                    fontWeight: FontWeight.bold,
-                                                    color:
-                                                        _reminderEnabled
-                                                            ? const Color(
-                                                              0xFF9C4380,
-                                                            )
-                                                            : Colors
-                                                                .grey
-                                                                .shade500,
-                                                  ),
-                                                ),
-                                                if (_reminderEnabled) ...[
-                                                  const SizedBox(width: 8),
-                                                  const Icon(
-                                                    Icons.edit,
-                                                    color: Color(0xFF9C4380),
-                                                    size: 18,
-                                                  ),
-                                                ],
-                                              ],
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ).animate(delay: 700.ms).fadeIn(duration: 400.ms),
+                                _buildStockSection(),
                                 const SizedBox(height: 30),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Ingatkan saya saat:',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w600,
-                                        color:
-                                            _reminderEnabled
-                                                ? Colors.grey.shade700
-                                                : Colors.grey.shade500,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 16),
-                                    InkWell(
-                                      onTap:
-                                          _reminderEnabled
-                                              ? _showThresholdEditor
-                                              : null,
-                                      borderRadius: BorderRadius.circular(30),
-                                      child: Container(
-                                        width: double.infinity,
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 20,
-                                          vertical: 16,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey.shade200,
-                                          borderRadius: BorderRadius.circular(
-                                            30,
-                                          ),
-                                          border: Border.all(
-                                            color:
-                                                _reminderEnabled
-                                                    ? Colors.transparent
-                                                    : Colors.grey.shade300,
-                                            width: 1,
-                                          ),
-                                        ),
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            const Text(
-                                              'Sisa Persediaan',
-                                              style: TextStyle(
-                                                fontSize: 20,
-                                                fontWeight: FontWeight.bold,
-                                                color: Color(0xFF444444),
-                                              ),
-                                            ),
-                                            Row(
-                                              children: [
-                                                Text(
-                                                  '$_reminderThreshold $_unitType',
-                                                  style: TextStyle(
-                                                    fontSize: 20,
-                                                    fontWeight: FontWeight.bold,
-                                                    color:
-                                                        _reminderEnabled
-                                                            ? const Color(
-                                                              0xFF9C4380,
-                                                            )
-                                                            : Colors
-                                                                .grey
-                                                                .shade500,
-                                                  ),
-                                                ),
-                                                if (_reminderEnabled) ...[
-                                                  const SizedBox(width: 8),
-                                                  const Icon(
-                                                    Icons.edit,
-                                                    color: Color(0xFF9C4380),
-                                                    size: 18,
-                                                  ),
-                                                ],
-                                              ],
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ).animate(delay: 800.ms).fadeIn(duration: 400.ms),
-
+                                _buildThresholdSection(),
                                 const SizedBox(height: 80),
                               ],
                             ),
                           ),
                         ),
                       ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 16,
-                        ),
-                        child: RoundedButton(
-                              text: 'Simpan',
-                              onPressed: _saveSettings,
-                              color: AppColors.textHighlight,
-                              textColor: Colors.black,
-                              width: double.infinity,
-                              height: 56,
-                              borderRadius: 28,
-                              elevation: 3,
-                            )
-                            .animate(delay: 900.ms)
-                            .fadeIn(duration: 600.ms, curve: Curves.easeOut)
-                            .slideY(
-                              begin: 0.3,
-                              end: 0,
-                              duration: 600.ms,
-                              curve: Curves.easeOutQuad,
-                            ),
-                      ),
+                      _buildSubmitButton(),
                     ],
                   ),
                 ),
@@ -606,6 +307,386 @@ class _MedicationStockScreenState extends State<MedicationStockScreen> {
           },
         ),
       ),
+    );
+  }
+
+  Widget _buildHeader(MedicationStockState state) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Hi, ${state.data.nickname}',
+              style: TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.bold,
+                color: Colors.white.withOpacity(0.9),
+              ),
+            ).animate(delay: 100.ms).fadeIn(duration: 400.ms),
+            const SizedBox(height: 4),
+            Text(
+              _formattedDate,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Colors.white.withOpacity(0.7),
+              ),
+            ).animate(delay: 200.ms).fadeIn(duration: 400.ms),
+          ],
+        ),
+        Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.2),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
+            Icons.person_outline_rounded,
+            color: Colors.white,
+            size: 28,
+          ),
+        ).animate(delay: 200.ms).fadeIn(duration: 400.ms),
+      ],
+    );
+  }
+
+  Widget _buildBackButton() {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        Navigator.pop(context);
+      },
+      child: Row(
+        children: [
+          const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
+          const SizedBox(width: 8),
+          Text(
+            'Kembali',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w500,
+              color: Colors.grey.shade200,
+            ),
+          ),
+        ],
+      ),
+    ).animate(delay: 300.ms).fadeIn(duration: 400.ms);
+  }
+
+  Widget _buildMedicationInfo() {
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.medication_outlined,
+              color: Colors.teal.shade700,
+              size: 24,
+            ),
+            const SizedBox(width: 12),
+            Text(
+              widget.medicationName,
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF444444),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ).animate(delay: 400.ms).fadeIn(duration: 400.ms);
+  }
+
+  Widget _buildReminderQuestion() {
+    return Center(
+      child: Column(
+        children: [
+          Text(
+            'Apakah Anda butuh pengingat untuk\nmengisi ulang persediaan obat?',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              height: 1.3,
+              color: Colors.grey.shade800,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.teal.shade50,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.teal.shade200),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.info_outline, color: Colors.teal.shade700, size: 16),
+                const SizedBox(width: 8),
+                Text(
+                  'Kami akan mengingatkan Anda saat persediaan hampir habis',
+                  style: TextStyle(fontSize: 12, color: Colors.teal.shade700),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ).animate(delay: 500.ms).fadeIn(duration: 400.ms);
+  }
+
+  Widget _buildReminderToggle() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          'Ingatkan Saya',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey.shade800,
+          ),
+        ),
+        GestureDetector(
+          onTap: () => _toggleReminder(!_reminderEnabled),
+          child: Container(
+            width: 70,
+            height: 38,
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              color:
+                  _reminderEnabled
+                      ? Colors.teal.shade700
+                      : Colors.grey.shade300,
+            ),
+            child: AnimatedAlign(
+              alignment:
+                  _reminderEnabled
+                      ? Alignment.centerRight
+                      : Alignment.centerLeft,
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOut,
+              child: Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    ).animate(delay: 600.ms).fadeIn(duration: 400.ms);
+  }
+
+  Widget _buildStockSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(
+              Icons.inventory_2_outlined,
+              color: Colors.teal.shade700,
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Persediaan saat ini',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey.shade700,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        InkWell(
+          onTap: _reminderEnabled ? _showStockEditor : null,
+          borderRadius: BorderRadius.circular(30),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade200,
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(
+                color:
+                    _reminderEnabled
+                        ? Colors.transparent
+                        : Colors.grey.shade300,
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Jumlah',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF444444),
+                  ),
+                ),
+                Row(
+                  children: [
+                    Text(
+                      '$_currentStock $_unitType',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color:
+                            _reminderEnabled
+                                ? Colors.teal.shade700
+                                : Colors.grey.shade500,
+                      ),
+                    ),
+                    if (_reminderEnabled) ...[
+                      const SizedBox(width: 8),
+                      Icon(Icons.edit, color: Colors.teal.shade700, size: 18),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    ).animate(delay: 700.ms).fadeIn(duration: 400.ms);
+  }
+
+  Widget _buildThresholdSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(
+              Icons.notifications_active_outlined,
+              color: Colors.teal.shade700,
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Ingatkan saya saat:',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color:
+                    _reminderEnabled
+                        ? Colors.grey.shade700
+                        : Colors.grey.shade500,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        InkWell(
+          onTap: _reminderEnabled ? _showThresholdEditor : null,
+          borderRadius: BorderRadius.circular(30),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade200,
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(
+                color:
+                    _reminderEnabled
+                        ? Colors.transparent
+                        : Colors.grey.shade300,
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Sisa Persediaan',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF444444),
+                  ),
+                ),
+                Row(
+                  children: [
+                    Text(
+                      '$_reminderThreshold $_unitType',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color:
+                            _reminderEnabled
+                                ? Colors.teal.shade700
+                                : Colors.grey.shade500,
+                      ),
+                    ),
+                    if (_reminderEnabled) ...[
+                      const SizedBox(width: 8),
+                      Icon(Icons.edit, color: Colors.teal.shade700, size: 18),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    ).animate(delay: 800.ms).fadeIn(duration: 400.ms);
+  }
+
+  Widget _buildSubmitButton() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      child: RoundedButton(
+            text: 'Simpan',
+            onPressed: _saveSettings,
+            color: AppColors.textHighlight,
+            textColor: Colors.black,
+            width: double.infinity,
+            height: 56,
+            borderRadius: 28,
+            elevation: 3,
+          )
+          .animate(delay: 900.ms)
+          .fadeIn(duration: 600.ms, curve: Curves.easeOut)
+          .slideY(
+            begin: 0.3,
+            end: 0,
+            duration: 600.ms,
+            curve: Curves.easeOutQuad,
+          ),
     );
   }
 
@@ -637,9 +718,9 @@ class _MedicationStockScreenState extends State<MedicationStockScreen> {
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF05606B),
-                      borderRadius: BorderRadius.vertical(
+                    decoration: BoxDecoration(
+                      color: Colors.teal.shade700,
+                      borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(20),
                       ),
                     ),
@@ -649,7 +730,7 @@ class _MedicationStockScreenState extends State<MedicationStockScreen> {
                           width: 40,
                           height: 5,
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: .5),
+                            color: Colors.white.withOpacity(0.5),
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
@@ -677,22 +758,20 @@ class _MedicationStockScreenState extends State<MedicationStockScreen> {
                           ),
                           margin: const EdgeInsets.symmetric(vertical: 24),
                           decoration: BoxDecoration(
-                            color: const Color(
-                              0xFF05606B,
-                            ).withValues(alpha: .1),
+                            color: Colors.teal.shade50,
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: const Color(0xFF05606B),
+                              color: Colors.teal.shade700,
                               width: 2,
                             ),
                           ),
                           child: Text(
                             '$tempValue $suffix',
                             textAlign: TextAlign.center,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 28,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF05606B),
+                              color: Colors.teal.shade700,
                             ),
                           ),
                         ),
@@ -703,6 +782,7 @@ class _MedicationStockScreenState extends State<MedicationStockScreen> {
                               icon: Icons.remove,
                               onPressed: () {
                                 if (tempValue > minValue) {
+                                  HapticFeedback.selectionClick();
                                   setModalState(() => tempValue--);
                                 }
                               },
@@ -712,6 +792,7 @@ class _MedicationStockScreenState extends State<MedicationStockScreen> {
                               icon: Icons.add,
                               onPressed: () {
                                 if (tempValue < maxValue) {
+                                  HapticFeedback.selectionClick();
                                   setModalState(() => tempValue++);
                                 }
                               },
@@ -721,13 +802,12 @@ class _MedicationStockScreenState extends State<MedicationStockScreen> {
                       ],
                     ),
                   ),
-
-                  // Confirm button
                   Padding(
                     padding: const EdgeInsets.all(16),
                     child: RoundedButton(
                       text: 'Konfirmasi',
                       onPressed: () {
+                        HapticFeedback.mediumImpact();
                         onChanged(tempValue);
                         Navigator.pop(context);
                       },
@@ -759,10 +839,10 @@ class _MedicationStockScreenState extends State<MedicationStockScreen> {
         height: 60,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: const Color(0xFF05606B),
+          color: Colors.teal.shade700,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: .2),
+              color: Colors.black.withOpacity(0.2),
               blurRadius: 4,
               offset: const Offset(0, 2),
             ),
@@ -773,13 +853,11 @@ class _MedicationStockScreenState extends State<MedicationStockScreen> {
     );
   }
 
-  // Add this helper method to extract the unit from dosage
   String _getUnitFromDosage() {
-    // Extract the unit part from dosage (e.g., "2 tablet" -> "tablet", "1 kapsul" -> "kapsul")
     final parts = widget.dosage.split(' ');
     if (parts.length >= 2) {
-      return parts[1]; // Return the unit part (tablet, kapsul, etc.)
+      return parts[1];
     }
-    return 'tablet'; // Default fallback
+    return 'tablet';
   }
 }

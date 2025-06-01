@@ -20,15 +20,21 @@ class MedicationReminderScreen extends StatefulWidget {
       _MedicationReminderScreenState();
 }
 
-class _MedicationReminderScreenState extends State<MedicationReminderScreen> {
+class _MedicationReminderScreenState extends State<MedicationReminderScreen>
+    with SingleTickerProviderStateMixin {
   bool _showContent = false;
   String _formattedDate = '';
   MedicationReminderCubit? _medicationCubit;
   MedicationStockCubit? _stockCubit;
+  late TabController _tabController;
+  String _searchQuery = '';
+  String _selectedFilter = 'Semua';
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+
     Future.delayed(const Duration(milliseconds: 100), () {
       if (mounted) setState(() => _showContent = true);
     });
@@ -46,6 +52,7 @@ class _MedicationReminderScreenState extends State<MedicationReminderScreen> {
 
   @override
   void dispose() {
+    _tabController.dispose();
     _medicationCubit?.close();
     _stockCubit?.close();
     super.dispose();
@@ -92,6 +99,23 @@ class _MedicationReminderScreenState extends State<MedicationReminderScreen> {
         ),
       );
     }
+  }
+
+  List<Map<String, dynamic>> _filterMedications(
+    List<Map<String, dynamic>> medications,
+  ) {
+    return medications.where((med) {
+      final matchesSearch = med['name'].toString().toLowerCase().contains(
+        _searchQuery.toLowerCase(),
+      );
+      final matchesFilter =
+          _selectedFilter == 'Semua' ||
+          (_selectedFilter == 'Stok Rendah' &&
+              med['stockReminderEnabled'] == true &&
+              (med['currentStock'] ?? 0) <= (med['reminderThreshold'] ?? 0)) ||
+          (_selectedFilter == 'Aktif' && med['isActive'] == true);
+      return matchesSearch && matchesFilter;
+    }).toList();
   }
 
   @override
@@ -151,12 +175,35 @@ class _MedicationReminderScreenState extends State<MedicationReminderScreen> {
   }
 
   Widget _buildContent(MedicationReminderStateData data) {
+    final filteredMedications = _filterMedications(data.medications);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
-          child: Row(
+        _buildHeader(data),
+        _buildSearchAndFilter(),
+        _buildTabBar(),
+        Expanded(
+          child: TabBarView(
+            controller: _tabController,
+            children: [
+              _buildMedicationList(filteredMedications),
+              _buildUpcomingReminders(filteredMedications),
+              _buildLowStockMedications(filteredMedications),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHeader(MedicationReminderStateData data) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Column(
@@ -167,7 +214,7 @@ class _MedicationReminderScreenState extends State<MedicationReminderScreen> {
                     style: TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white.withValues(alpha: 0.9),
+                      color: Colors.white.withOpacity(0.9),
                     ),
                   ).animate(delay: 100.ms).fadeIn(duration: 400.ms),
                   const SizedBox(height: 4),
@@ -176,7 +223,7 @@ class _MedicationReminderScreenState extends State<MedicationReminderScreen> {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: Colors.white.withValues(alpha: 0.7),
+                      color: Colors.white.withOpacity(0.7),
                     ),
                   ).animate(delay: 200.ms).fadeIn(duration: 400.ms),
                 ],
@@ -185,7 +232,7 @@ class _MedicationReminderScreenState extends State<MedicationReminderScreen> {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
+                  color: Colors.white.withOpacity(0.2),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -196,11 +243,8 @@ class _MedicationReminderScreenState extends State<MedicationReminderScreen> {
               ).animate(delay: 200.ms).fadeIn(duration: 400.ms),
             ],
           ),
-        ),
-        const SizedBox(height: 24),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Row(
+          const SizedBox(height: 24),
+          Row(
             children: [
               GestureDetector(
                 onTap: () {
@@ -230,71 +274,249 @@ class _MedicationReminderScreenState extends State<MedicationReminderScreen> {
               const SizedBox(width: 20),
             ],
           ).animate(delay: 300.ms).fadeIn(duration: 400.ms),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchAndFilter() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      child: Column(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: TextField(
+              onChanged: (value) => setState(() => _searchQuery = value),
+              decoration: InputDecoration(
+                hintText: 'Cari obat...',
+                prefixIcon: const Icon(Icons.search),
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildFilterChip('Semua'),
+                _buildFilterChip('Stok Rendah'),
+                _buildFilterChip('Aktif'),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String label) {
+    final isSelected = _selectedFilter == label;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: FilterChip(
+        selected: isSelected,
+        label: Text(label),
+        onSelected: (selected) => setState(() => _selectedFilter = label),
+        backgroundColor: Colors.white.withOpacity(0.2),
+        selectedColor: AppColors.textHighlight,
+        checkmarkColor: Colors.white,
+        labelStyle: TextStyle(
+          color: isSelected ? Colors.white : Colors.white.withOpacity(0.7),
         ),
-        const SizedBox(height: 16),
-        Expanded(
-          child:
-              data.medications.isEmpty
-                  ? Center(
-                    child: RoundedButton(
-                          text: 'Buat Pengingat Pertama',
-                          onPressed: _createReminder,
-                          color: AppColors.textHighlight,
-                          textColor: Colors.black,
-                          width: 300,
-                          height: 50,
-                          borderRadius: 25,
-                          elevation: 3,
-                        )
-                        .animate(delay: 700.ms)
-                        .fadeIn(duration: 600.ms, curve: Curves.easeOut)
-                        .slideY(
-                          begin: 0.3,
-                          end: 0,
-                          duration: 600.ms,
-                          curve: Curves.easeOutQuad,
-                        ),
-                  )
-                  : Column(
-                    children: [
-                      Expanded(
-                        child: ListView.builder(
-                          physics: const ClampingScrollPhysics(),
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          itemCount: data.medications.length,
-                          itemBuilder: (context, index) {
-                            final medication = data.medications[index];
-                            return _buildMedicationCard(medication);
-                          },
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.only(
-                          left: 24,
-                          right: 24,
-                          bottom: 40,
-                        ),
-                        child: RoundedButton(
-                          text: 'Tambah Pengingat',
-                          onPressed: _createReminder,
-                          color: AppColors.textHighlight,
-                          textColor: Colors.black,
-                          width: 300,
-                          height: 50,
-                          borderRadius: 25,
-                          elevation: 3,
-                        ),
-                      ),
-                    ],
-                  ),
+      ),
+    );
+  }
+
+  Widget _buildTabBar() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 24),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: TabBar(
+        controller: _tabController,
+        indicator: BoxDecoration(
+          color: AppColors.textHighlight,
+          borderRadius: BorderRadius.circular(12),
         ),
-      ],
+        labelColor: Colors.white,
+        unselectedLabelColor: Colors.white.withOpacity(0.7),
+        tabs: const [
+          Tab(text: 'Semua'),
+          Tab(text: 'Jadwal'),
+          Tab(text: 'Stok'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMedicationList(List<Map<String, dynamic>> medications) {
+    if (medications.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.medication_outlined,
+              size: 64,
+              color: Colors.white.withOpacity(0.5),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Belum ada pengingat obat',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.white.withOpacity(0.7),
+              ),
+            ),
+            const SizedBox(height: 24),
+            RoundedButton(
+              text: 'Buat Pengingat Pertama',
+              onPressed: _createReminder,
+              color: AppColors.textHighlight,
+              textColor: Colors.black,
+              width: 300,
+              height: 50,
+              borderRadius: 25,
+              elevation: 3,
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      physics: const ClampingScrollPhysics(),
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      itemCount: medications.length,
+      itemBuilder: (context, index) {
+        final medication = medications[index];
+        return _buildMedicationCard(medication);
+      },
+    );
+  }
+
+  Widget _buildUpcomingReminders(List<Map<String, dynamic>> medications) {
+    final now = DateTime.now();
+    final upcomingMedications =
+        medications.where((med) {
+          final time = med['time']?.toString() ?? '';
+          if (time.isEmpty) return false;
+
+          final timeParts = time.split(':');
+          if (timeParts.length != 2) return false;
+
+          final reminderTime = DateTime(
+            now.year,
+            now.month,
+            now.day,
+            int.parse(timeParts[0]),
+            int.parse(timeParts[1]),
+          );
+
+          return reminderTime.isAfter(now);
+        }).toList();
+
+    if (upcomingMedications.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.access_time,
+              size: 64,
+              color: Colors.white.withOpacity(0.5),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Tidak ada jadwal obat hari ini',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.white.withOpacity(0.7),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      physics: const ClampingScrollPhysics(),
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      itemCount: upcomingMedications.length,
+      itemBuilder: (context, index) {
+        final medication = upcomingMedications[index];
+        return _buildMedicationCard(medication);
+      },
+    );
+  }
+
+  Widget _buildLowStockMedications(List<Map<String, dynamic>> medications) {
+    final lowStockMedications =
+        medications
+            .where(
+              (med) =>
+                  med['stockReminderEnabled'] == true &&
+                  (med['currentStock'] ?? 0) <= (med['reminderThreshold'] ?? 0),
+            )
+            .toList();
+
+    if (lowStockMedications.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.inventory_2_outlined,
+              size: 64,
+              color: Colors.white.withOpacity(0.5),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Tidak ada obat dengan stok rendah',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.white.withOpacity(0.7),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      physics: const ClampingScrollPhysics(),
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      itemCount: lowStockMedications.length,
+      itemBuilder: (context, index) {
+        final medication = lowStockMedications[index];
+        return _buildMedicationCard(medication);
+      },
     );
   }
 
   Widget _buildMedicationCard(Map<String, dynamic> medication) {
-    final bool isLowStock = medication['stockReminderEnabled'] == true &&
-        (medication['currentStock'] ?? 0) <= (medication['reminderThreshold'] ?? 0);
+    final bool isLowStock =
+        medication['stockReminderEnabled'] == true &&
+        (medication['currentStock'] ?? 0) <=
+            (medication['reminderThreshold'] ?? 0);
 
     return Slidable(
       key: ValueKey(medication['id']),
@@ -317,9 +539,10 @@ class _MedicationReminderScreenState extends State<MedicationReminderScreen> {
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            border: isLowStock
-                ? Border.all(color: Colors.red.shade300, width: 2)
-                : null,
+            border:
+                isLowStock
+                    ? Border.all(color: Colors.red.shade300, width: 2)
+                    : null,
           ),
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -354,7 +577,7 @@ class _MedicationReminderScreenState extends State<MedicationReminderScreen> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: AppColors.textHighlight.withValues(alpha: 0.1),
+                        color: AppColors.textHighlight.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Icon(
@@ -381,9 +604,7 @@ class _MedicationReminderScreenState extends State<MedicationReminderScreen> {
                         const SizedBox(width: 4),
                         Text(
                           medication['time'] ?? '',
-                          style: TextStyle(
-                            color: Colors.grey.shade600,
-                          ),
+                          style: TextStyle(color: Colors.grey.shade600),
                         ),
                       ],
                     ),
@@ -393,13 +614,17 @@ class _MedicationReminderScreenState extends State<MedicationReminderScreen> {
                           Icon(
                             Icons.inventory_2_outlined,
                             size: 16,
-                            color: isLowStock ? Colors.red : Colors.grey.shade600,
+                            color:
+                                isLowStock ? Colors.red : Colors.grey.shade600,
                           ),
                           const SizedBox(width: 4),
                           Text(
                             'Stok: ${medication['currentStock']} ${medication['unitType']}',
                             style: TextStyle(
-                              color: isLowStock ? Colors.red : Colors.grey.shade600,
+                              color:
+                                  isLowStock
+                                      ? Colors.red
+                                      : Colors.grey.shade600,
                               fontWeight: isLowStock ? FontWeight.bold : null,
                             ),
                           ),

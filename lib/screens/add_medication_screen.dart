@@ -2,7 +2,9 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '/cubits/add-medication-reminder/add_medication_reminder_cubit.dart';
 import 'medication_frequency_screen.dart';
@@ -21,6 +23,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   bool _showContent = false;
   final TextEditingController _medicationController = TextEditingController();
   AddMedicationCubit? _addMedicationCubit;
+  String _formattedDate = '';
 
   @override
   void initState() {
@@ -34,6 +37,23 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
       FirebaseAuth.instance,
     );
     _addMedicationCubit?.initialize();
+
+    _setFormattedDate();
+  }
+
+  void _setFormattedDate() {
+    final now = DateTime.now();
+    final formatter = DateFormat('EEEE, MMM d', 'id_ID');
+    final formatted = formatter.format(now);
+    _formattedDate = formatted
+        .split(' ')
+        .map(
+          (word) =>
+              word.isNotEmpty
+                  ? '${word[0].toUpperCase()}${word.substring(1)}'
+                  : '',
+        )
+        .join(' ');
   }
 
   @override
@@ -49,6 +69,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
       return;
     }
 
+    HapticFeedback.mediumImpact();
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -100,219 +121,11 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                          'Hi, ${state.data.nickname}',
-                                          style: TextStyle(
-                                            fontSize: 26,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.white.withValues(
-                                              alpha: 0.9,
-                                            ),
-                                          ),
-                                        )
-                                        .animate(delay: 100.ms)
-                                        .fadeIn(duration: 400.ms),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                          state.data.formattedDate,
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w500,
-                                            color: Colors.white.withValues(
-                                              alpha: 0.7,
-                                            ),
-                                          ),
-                                        )
-                                        .animate(delay: 200.ms)
-                                        .fadeIn(duration: 400.ms),
-                                  ],
-                                ),
-                                Container(
-                                      width: 48,
-                                      height: 48,
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.2,
-                                        ),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Icon(
-                                        Icons.person_outline_rounded,
-                                        color: Colors.white,
-                                        size: 28,
-                                      ),
-                                    )
-                                    .animate(delay: 200.ms)
-                                    .fadeIn(duration: 400.ms),
-                              ],
-                            ),
-                          ),
+                          _buildHeader(state),
                           const SizedBox(height: 24),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 24),
-                            child: GestureDetector(
-                              onTap: () => Navigator.pop(context),
-                              child: Row(
-                                children: [
-                                  const Icon(
-                                    Icons.arrow_back_ios,
-                                    color: Colors.white,
-                                    size: 20,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Kembali',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.grey.shade200,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ).animate(delay: 300.ms).fadeIn(duration: 400.ms),
-                          ),
+                          _buildBackButton(),
                           const SizedBox(height: 60),
-                          Flexible(
-                            child: Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                children: [
-                                  Container(
-                                        width: 120,
-                                        height: 120,
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius: BorderRadius.circular(
-                                            20,
-                                          ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black.withValues(
-                                                alpha: .1,
-                                              ),
-                                              blurRadius: 10,
-                                              offset: const Offset(0, 4),
-                                            ),
-                                          ],
-                                        ),
-                                        child: Center(
-                                          child: Icon(
-                                            Icons.medical_services_outlined,
-                                            size: 60,
-                                            color: Colors.teal.shade700,
-                                          ),
-                                        ),
-                                      )
-                                      .animate(delay: 400.ms)
-                                      .fadeIn(
-                                        duration: 600.ms,
-                                        curve: Curves.easeOut,
-                                      )
-                                      .scale(
-                                        begin: const Offset(0.8, 0.8),
-                                        end: const Offset(1.0, 1.0),
-                                        duration: 600.ms,
-                                        curve: Curves.easeOutQuad,
-                                      ),
-                                  const SizedBox(height: 60),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 32,
-                                    ),
-                                    child: Text(
-                                      'Buat Pengingat: Ketik nama obat, vitamin, atau suplemen anda',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold,
-                                        height: 1.4,
-                                        color: Colors.grey.shade800,
-                                      ),
-                                    ),
-                                  ).animate(delay: 500.ms).fadeIn(duration: 500.ms),
-                                  const SizedBox(height: 60),
-                                  Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 32,
-                                        ),
-                                        child: TextField(
-                                          controller: _medicationController,
-                                          style: const TextStyle(
-                                            fontSize: 18,
-                                            color: Colors.black87,
-                                          ),
-                                          decoration: InputDecoration(
-                                            hintText: 'Nama obat...',
-                                            hintStyle: TextStyle(
-                                              color: Colors.grey.shade500,
-                                            ),
-                                            filled: true,
-                                            fillColor: Colors.white,
-                                            contentPadding:
-                                                const EdgeInsets.symmetric(
-                                                  horizontal: 24,
-                                                  vertical: 16,
-                                                ),
-                                            border: OutlineInputBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(30),
-                                              borderSide: BorderSide.none,
-                                            ),
-                                            enabledBorder: OutlineInputBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(30),
-                                              borderSide: BorderSide.none,
-                                            ),
-                                            focusedBorder: OutlineInputBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(30),
-                                              borderSide: const BorderSide(
-                                                color: Color(0xFF05606B),
-                                                width: 2,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      )
-                                      .animate(delay: 600.ms)
-                                      .fadeIn(duration: 500.ms),
-                                ],
-                              ),
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.only(
-                              left: 32,
-                              right: 32,
-                              bottom: 40,
-                            ),
-                            child: RoundedButton(
-                                  text: 'Tambah Pengingat',
-                                  onPressed: _addReminder,
-                                  color: AppColors.textHighlight,
-                                  textColor: Colors.black,
-                                  width: double.infinity,
-                                  height: 56,
-                                  borderRadius: 30,
-                                )
-                                .animate(delay: 700.ms)
-                                .fadeIn(duration: 600.ms, curve: Curves.easeOut)
-                                .slideY(
-                                  begin: 0.3,
-                                  end: 0,
-                                  duration: 600.ms,
-                                  curve: Curves.easeOutQuad,
-                                ),
-                          ),
+                          _buildContent(),
                         ],
                       ),
                     ),
@@ -323,6 +136,207 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
           );
         },
       ),
+    );
+  }
+
+  Widget _buildHeader(AddMedicationState state) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Hi, ${state.data.nickname}',
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white.withOpacity(0.9),
+                ),
+              ).animate(delay: 100.ms).fadeIn(duration: 400.ms),
+              const SizedBox(height: 4),
+              Text(
+                _formattedDate,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white.withOpacity(0.7),
+                ),
+              ).animate(delay: 200.ms).fadeIn(duration: 400.ms),
+            ],
+          ),
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.person_outline_rounded,
+              color: Colors.white,
+              size: 28,
+            ),
+          ).animate(delay: 200.ms).fadeIn(duration: 400.ms),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBackButton() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: GestureDetector(
+        onTap: () {
+          HapticFeedback.lightImpact();
+          Navigator.pop(context);
+        },
+        child: Row(
+          children: [
+            const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              'Kembali',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey.shade200,
+              ),
+            ),
+          ],
+        ),
+      ).animate(delay: 300.ms).fadeIn(duration: 400.ms),
+    );
+  }
+
+  Widget _buildContent() {
+    return Flexible(
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            _buildIconContainer(),
+            const SizedBox(height: 60),
+            _buildTitle(),
+            const SizedBox(height: 60),
+            _buildInputField(),
+            const Spacer(),
+            _buildSubmitButton(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIconContainer() {
+    return Container(
+          width: 120,
+          height: 120,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Center(
+            child: Icon(
+              Icons.medical_services_outlined,
+              size: 60,
+              color: Colors.teal.shade700,
+            ),
+          ),
+        )
+        .animate(delay: 400.ms)
+        .fadeIn(duration: 600.ms, curve: Curves.easeOut)
+        .scale(
+          begin: const Offset(0.8, 0.8),
+          end: const Offset(1.0, 1.0),
+          duration: 600.ms,
+          curve: Curves.easeOutQuad,
+        );
+  }
+
+  Widget _buildTitle() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 32),
+      child: Text(
+        'Buat Pengingat: Ketik nama obat, vitamin, atau suplemen anda',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+          height: 1.4,
+          color: Colors.grey.shade800,
+        ),
+      ),
+    ).animate(delay: 500.ms).fadeIn(duration: 500.ms);
+  }
+
+  Widget _buildInputField() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 32),
+      child: TextField(
+        controller: _medicationController,
+        style: const TextStyle(fontSize: 18, color: Colors.black87),
+        decoration: InputDecoration(
+          hintText: 'Nama obat...',
+          hintStyle: TextStyle(color: Colors.grey.shade500),
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: 16,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(30),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(30),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(30),
+            borderSide: const BorderSide(color: Color(0xFF05606B), width: 2),
+          ),
+          prefixIcon: const Icon(
+            Icons.medication_outlined,
+            color: Color(0xFF05606B),
+          ),
+        ),
+        textInputAction: TextInputAction.done,
+        onSubmitted: (_) => _addReminder(),
+      ),
+    ).animate(delay: 600.ms).fadeIn(duration: 500.ms);
+  }
+
+  Widget _buildSubmitButton() {
+    return Padding(
+      padding: const EdgeInsets.only(left: 32, right: 32, bottom: 40),
+      child: RoundedButton(
+            text: 'Tambah Pengingat',
+            onPressed: _addReminder,
+            color: AppColors.textHighlight,
+            textColor: Colors.black,
+            width: double.infinity,
+            height: 56,
+            borderRadius: 30,
+          )
+          .animate(delay: 700.ms)
+          .fadeIn(duration: 600.ms, curve: Curves.easeOut)
+          .slideY(
+            begin: 0.3,
+            end: 0,
+            duration: 600.ms,
+            curve: Curves.easeOutQuad,
+          ),
     );
   }
 }
